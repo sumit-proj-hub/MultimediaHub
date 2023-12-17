@@ -2,6 +2,12 @@ package com.example.multimediahub
 
 import android.content.Context
 import android.provider.MediaStore
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class MediaType { Image, Audio, Video, PDF }
 
@@ -36,7 +42,7 @@ fun getMediaList(
     }
     val sortOrder = when (sortBy) {
         SortBy.Name -> "${MediaStore.Files.FileColumns.DISPLAY_NAME} ASC"
-        SortBy.Size -> "${MediaStore.Files.FileColumns.MEDIA_TYPE} DESC"
+        SortBy.Size -> "${MediaStore.Files.FileColumns.SIZE} DESC"
         SortBy.LastModified -> "${MediaStore.Files.FileColumns.DATE_MODIFIED}  DESC"
     }
     val query = context.contentResolver.query(collection, projection, selection, null, sortOrder)
@@ -53,15 +59,24 @@ fun getMediaList(
                 name = cursor.getString(nameColumn),
                 mediaType = when {
                     mimeType.startsWith("image/") -> MediaType.Image
-                    mimeType.startsWith("video/") -> MediaType.Audio
-                    mimeType.startsWith("audio/") -> MediaType.Video
+                    mimeType.startsWith("video/") -> MediaType.Video
+                    mimeType.startsWith("audio/") -> MediaType.Audio
                     else -> MediaType.PDF
                 },
-                lastModified = cursor.getLong(dateModifiedColumn),
+                lastModified = cursor.getLong(dateModifiedColumn) * 1000,
                 size = cursor.getLong(sizeColumn),
                 filePath = cursor.getString(dataColumn)
             )
         }
     }
     return mediaList
+}
+
+fun getMediaIcon(mediaType: MediaType): ImageVector {
+    return when (mediaType) {
+        MediaType.Image -> Icons.Default.Image
+        MediaType.Audio -> Icons.Default.AudioFile
+        MediaType.Video -> Icons.Default.VideoFile
+        MediaType.PDF -> Icons.Default.PictureAsPdf
+    }
 }

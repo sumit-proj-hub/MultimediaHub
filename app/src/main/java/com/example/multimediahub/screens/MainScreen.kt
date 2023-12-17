@@ -52,7 +52,7 @@ import com.example.multimediahub.SelectedMediaType
 import com.example.multimediahub.SortBy
 import com.example.multimediahub.ViewBy
 
-sealed class BottomNavItem(
+private sealed class BottomNavItem(
     val route: String,
     val label: String,
     val icon: ImageVector
@@ -77,7 +77,7 @@ sealed class BottomNavItem(
 }
 
 @Composable
-fun BottomNavGraph(
+private fun BottomNavGraph(
     displayInfo: FilesDisplayInfo,
     navController: NavHostController,
     paddingValues: PaddingValues
@@ -95,7 +95,7 @@ fun BottomNavGraph(
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavHostController) {
+private fun BottomNavigationBar(navController: NavHostController) {
     val screens = listOf(BottomNavItem.Recent, BottomNavItem.Files, BottomNavItem.Folders)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -116,9 +116,9 @@ fun BottomNavigationBar(navController: NavHostController) {
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    var selectedMediaType by rememberSaveable { mutableStateOf(SelectedMediaType.All) }
-    var sortBy by rememberSaveable { mutableStateOf(SortBy.Name) }
-    var viewBy by rememberSaveable { mutableStateOf(ViewBy.List) }
+    var selectedMediaType by rememberSaveable { mutableStateOf(SelectedMediaType.Default) }
+    var sortBy by rememberSaveable { mutableStateOf(SortBy.Default) }
+    var viewBy by rememberSaveable { mutableStateOf(ViewBy.Default) }
     val displayInfo = FilesDisplayInfo(selectedMediaType, sortBy, viewBy)
     Surface {
         Scaffold(
@@ -150,7 +150,7 @@ fun MainScreen() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FileSearch() {
+private fun FileSearch() {
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
     SearchBar(
@@ -184,7 +184,7 @@ fun FileSearch() {
 }
 
 @Composable
-fun MediaTypeSelector(
+private fun MediaTypeSelector(
     selectedType: SelectedMediaType,
     onClick: (selectedType: SelectedMediaType) -> Unit,
     modifier: Modifier = Modifier
@@ -207,7 +207,7 @@ fun MediaTypeSelector(
 }
 
 @Composable
-fun SwitchButton(
+private fun SwitchButton(
     text: String,
     isChecked: Boolean,
     onClick: () -> Unit,
@@ -264,7 +264,7 @@ private fun SortAndView(
 }
 
 @Composable
-fun Head(
+private fun Head(
     displayInfo: FilesDisplayInfo,
     onMediaTypeClick: (selectedType: SelectedMediaType) -> Unit,
     onSortByClick: () -> Unit,
