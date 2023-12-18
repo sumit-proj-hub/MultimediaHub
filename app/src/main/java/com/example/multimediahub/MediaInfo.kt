@@ -4,10 +4,13 @@ import android.content.Context
 import android.provider.MediaStore
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.VideoFile
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 
 enum class MediaType { Image, Audio, Video, PDF }
 
@@ -72,11 +75,28 @@ fun getMediaList(
     return mediaList
 }
 
-fun getMediaIcon(mediaType: MediaType): ImageVector {
-    return when (mediaType) {
-        MediaType.Image -> Icons.Default.Image
-        MediaType.Audio -> Icons.Default.AudioFile
-        MediaType.Video -> Icons.Default.VideoFile
-        MediaType.PDF -> Icons.Default.PictureAsPdf
+@Composable
+@OptIn(ExperimentalGlideComposeApi::class)
+fun MediaIcon(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
+    when (mediaInfo.mediaType) {
+        MediaType.Audio -> Icon(
+            imageVector = Icons.Default.AudioFile,
+            contentDescription = mediaInfo.mediaType.toString(),
+            tint = colorResource(R.color.purple_200),
+            modifier = modifier
+        )
+
+        MediaType.PDF -> Icon(
+            imageVector = Icons.Default.PictureAsPdf,
+            contentDescription = mediaInfo.mediaType.toString(),
+            tint = colorResource(R.color.light_red),
+            modifier = modifier
+        )
+
+        MediaType.Image, MediaType.Video -> GlideImage(
+            model = "file://${mediaInfo.filePath}",
+            contentDescription = null,
+            modifier = modifier
+        )
     }
 }

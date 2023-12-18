@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,16 +30,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
 import com.example.multimediahub.FilesDisplayInfo
+import com.example.multimediahub.MediaIcon
 import com.example.multimediahub.MediaInfo
-import com.example.multimediahub.MediaType
 import com.example.multimediahub.SelectedMediaType
 import com.example.multimediahub.SortBy
-import com.example.multimediahub.getMediaIcon
+import com.example.multimediahub.ViewBy
 import com.example.multimediahub.getMediaList
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -61,20 +64,58 @@ fun FilesScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
     }
     if (fileList.isEmpty()) {
         MessageText(msg = "No Items")
-    } else {
-        val lazyListState = rememberLazyListState()
-        LazyColumn(
-            modifier = modifier.simpleVerticalScrollbar(state = lazyListState),
-            state = lazyListState
-        ) {
-            items(fileList) {
-                ListItem(it)
+        return
+    }
+    when (displayInfo.viewBy) {
+        ViewBy.List -> {
+            val lazyListState = rememberLazyListState()
+            LazyColumn(
+                modifier = modifier.simpleVerticalScrollbar(state = lazyListState),
+                state = lazyListState
+            ) {
+                items(fileList) { ListItem(it) }
+            }
+        }
+
+        ViewBy.Grid -> {
+            val lazyGridState = rememberLazyGridState()
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(140.dp),
+                modifier = modifier.simpleVerticalScrollbar(lazyGridState),
+                state = lazyGridState
+            ) {
+                items(fileList) { GridItem(it) }
             }
         }
     }
 }
 
-@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+fun GridItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.padding(6.dp),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Column {
+            MediaIcon(
+                mediaInfo = mediaInfo, modifier = Modifier
+                    .height(120.dp)
+                    .fillMaxWidth()
+            )
+            Text(
+                text = mediaInfo.name,
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 3.dp)
+            )
+        }
+    }
+}
+
 @Composable
 private fun ListItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
     Box(modifier = modifier) {
@@ -90,23 +131,11 @@ private fun ListItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .height(IntrinsicSize.Max)
             ) {
-                when (mediaInfo.mediaType) {
-                    MediaType.Audio, MediaType.PDF -> Icon(
-                        imageVector = getMediaIcon(mediaInfo.mediaType),
-                        contentDescription = mediaInfo.mediaType.toString(),
-                        modifier = Modifier
-                            .width(80.dp)
-                            .fillMaxHeight()
-                    )
-
-                    MediaType.Image, MediaType.Video -> GlideImage(
-                        model = "file://${mediaInfo.filePath}",
-                        contentDescription = null,
-                        modifier = Modifier
-                            .width(80.dp)
-                            .fillMaxHeight()
-                    )
-                }
+                MediaIcon(
+                    mediaInfo, modifier = Modifier
+                        .width(75.dp)
+                        .fillMaxHeight()
+                )
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -135,7 +164,7 @@ private fun formatMilliseconds(milliseconds: Long): String {
 }
 
 private fun formatFileSize(size: Long): String {
-    val units = listOf("Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB")
+    val units = listOf("Bytes", "KiB", "MiB", "GiB")
     var value = size.toDouble()
     var index = 0
     while (value >= 1024 && index < units.size - 1) {
