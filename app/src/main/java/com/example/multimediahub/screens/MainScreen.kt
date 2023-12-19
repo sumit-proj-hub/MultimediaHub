@@ -200,7 +200,8 @@ private fun MediaTypeSelector(
                 SwitchButton(
                     text = it.toString(),
                     isChecked = it == selectedType,
-                    onClick = { onClick(it) })
+                    onClick = { onClick(it) }
+                )
             }
         }
     }
@@ -217,14 +218,14 @@ private fun SwitchButton(
     Surface(
         modifier = modifier.clickable { onClick() },
         shape = MaterialTheme.shapes.extraLarge,
-        border = BorderStroke(2.dp, SolidColor(borderColor)),
+        border = BorderStroke(1.5.dp, SolidColor(borderColor)),
         color = if (isChecked) Color.DarkGray else MaterialTheme.colorScheme.background
     ) {
         Text(
             text = text,
             color = if (isChecked) Color.White else borderColor,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
         )
     }
 }
@@ -246,10 +247,11 @@ private fun SortAndView(
     ) {
         Text(
             text = "Sort By: $sortBy",
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
-                .border(1.dp, LocalContentColor.current, MaterialTheme.shapes.small)
-                .padding(vertical = 2.dp, horizontal = 6.dp)
+                .border(0.5.dp, LocalContentColor.current)
+                .padding(vertical = 3.dp, horizontal = 6.dp)
                 .clickable { onSortByClick() }
         )
         Icon(
