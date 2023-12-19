@@ -1,102 +1,163 @@
 package com.example.multimediahub
 
-import android.content.Context
+import android.content.ContentResolver
 import android.provider.MediaStore
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import java.io.File
 
 enum class MediaType { Image, Audio, Video, PDF }
 
-data class MediaInfo(
+class MediaInfo(
     val name: String,
-    val mediaType: MediaType,
-    val lastModified: Long,
-    val size: Long,
+    val mediaType: MediaType?,
+    var lastModified: Long,
+    var size: Long,
     val filePath: String
-)
+) {
+    @Composable
+    @OptIn(ExperimentalGlideComposeApi::class)
+    fun MediaIcon(modifier: Modifier = Modifier) {
+        if (mediaType == null) {
+            Icon(
+                imageVector = Icons.Default.Folder,
+                tint = MaterialTheme.colorScheme.primary,
+                contentDescription = "Folder",
+                modifier = modifier
+            )
+            return
+        }
+        when (mediaType) {
+            MediaType.Audio -> Icon(
+                imageVector = Icons.Default.AudioFile,
+                contentDescription = mediaType.toString(),
+                tint = colorResource(R.color.purple_200),
+                modifier = modifier
+            )
 
-fun getMediaList(
-    context: Context,
-    selectedMediaType: SelectedMediaType,
-    sortBy: SortBy
-): List<MediaInfo> {
-    val mediaList = mutableListOf<MediaInfo>()
-    val collection = MediaStore.Files.getContentUri("external")
-    val projection = arrayOf(
-        MediaStore.Files.FileColumns.DISPLAY_NAME,
-        MediaStore.Files.FileColumns.MIME_TYPE,
-        MediaStore.Files.FileColumns.DATE_MODIFIED,
-        MediaStore.Files.FileColumns.SIZE,
-        MediaStore.Files.FileColumns.DATA
-    )
-    val selection = when (selectedMediaType) {
-        SelectedMediaType.All -> "mime_type LIKE 'image/%' OR mime_type LIKE 'audio/%' OR mime_type LIKE 'video/%' OR mime_type = 'application/pdf'"
-        SelectedMediaType.Images -> "mime_type LIKE 'image/%'"
-        SelectedMediaType.Music -> "mime_type LIKE 'audio/%'"
-        SelectedMediaType.Videos -> "mime_type LIKE 'video/%'"
-        SelectedMediaType.PDFs -> "mime_type = 'application/pdf'"
-    }
-    val sortOrder = when (sortBy) {
-        SortBy.Name -> "${MediaStore.Files.FileColumns.DISPLAY_NAME} ASC"
-        SortBy.Size -> "${MediaStore.Files.FileColumns.SIZE} DESC"
-        SortBy.LastModified -> "${MediaStore.Files.FileColumns.DATE_MODIFIED}  DESC"
-    }
-    val query = context.contentResolver.query(collection, projection, selection, null, sortOrder)
-    query?.use { cursor ->
-        val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
-        val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
-        val dateModifiedColumn =
-            cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED)
-        val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
-        val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA)
-        while (cursor.moveToNext()) {
-            val mimeType = cursor.getString(mimeTypeColumn)
-            mediaList += MediaInfo(
-                name = cursor.getString(nameColumn),
-                mediaType = when {
-                    mimeType.startsWith("image/") -> MediaType.Image
-                    mimeType.startsWith("video/") -> MediaType.Video
-                    mimeType.startsWith("audio/") -> MediaType.Audio
-                    else -> MediaType.PDF
-                },
-                lastModified = cursor.getLong(dateModifiedColumn) * 1000,
-                size = cursor.getLong(sizeColumn),
-                filePath = cursor.getString(dataColumn)
+            MediaType.PDF -> Icon(
+                imageVector = Icons.Default.PictureAsPdf,
+                contentDescription = mediaType.toString(),
+                tint = colorResource(R.color.light_red),
+                modifier = modifier
+            )
+
+            MediaType.Image, MediaType.Video -> GlideImage(
+                model = "file://$filePath",
+                contentDescription = null,
+                modifier = modifier
             )
         }
     }
-    return mediaList
-}
 
-@Composable
-@OptIn(ExperimentalGlideComposeApi::class)
-fun MediaIcon(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
-    when (mediaInfo.mediaType) {
-        MediaType.Audio -> Icon(
-            imageVector = Icons.Default.AudioFile,
-            contentDescription = mediaInfo.mediaType.toString(),
-            tint = colorResource(R.color.purple_200),
-            modifier = modifier
-        )
+    companion object {
+        private fun getSelection(selectedMediaType: SelectedMediaType) = when (selectedMediaType) {
+            SelectedMediaType.All -> "media_type IN (1,2,3) OR mime_type='application/pdf'"
+            SelectedMediaType.Images -> "media_type=1"
+            SelectedMediaType.Music -> "media_type=2"
+            SelectedMediaType.Videos -> "media_type=3"
+            SelectedMediaType.PDFs -> "mime_type='application/pdf'"
+        }
 
-        MediaType.PDF -> Icon(
-            imageVector = Icons.Default.PictureAsPdf,
-            contentDescription = mediaInfo.mediaType.toString(),
-            tint = colorResource(R.color.light_red),
-            modifier = modifier
-        )
+        fun getMediaList(
+            contentResolver: ContentResolver,
+            selectedMediaType: SelectedMediaType,
+            sortBy: SortBy,
+            folderPath: String? = null
+        ): List<MediaInfo> {
+            val mediaList = mutableListOf<MediaInfo>()
+            val selection = if (folderPath == null) {
+                getSelection(selectedMediaType)
+            } else {
+                "_data LIKE '${folderPath.replace("'", "''")}%' AND (${
+                    getSelection(selectedMediaType)
+                })"
+            }
+            contentResolver.query(
+                MediaStore.Files.getContentUri("external"),
+                arrayOf("_display_name", "media_type", "date_modified", "_size", "_data"),
+                selection,
+                null,
+                when (sortBy) {
+                    SortBy.Name -> "_display_name ASC"
+                    SortBy.Size -> "_size DESC"
+                    SortBy.LastModified -> "date_modified DESC"
+                }
+            )?.use { cursor ->
+                val nameColumn = cursor.getColumnIndexOrThrow("_display_name")
+                val mediaTypeColumn = cursor.getColumnIndexOrThrow("media_type")
+                val dateModifiedColumn = cursor.getColumnIndexOrThrow("date_modified")
+                val sizeColumn = cursor.getColumnIndexOrThrow("_size")
+                val dataColumn = cursor.getColumnIndexOrThrow("_data")
+                while (cursor.moveToNext()) {
+                    val mediaType = cursor.getInt(mediaTypeColumn)
+                    mediaList += MediaInfo(
+                        name = cursor.getString(nameColumn),
+                        mediaType = when (mediaType) {
+                            1 -> MediaType.Image
+                            2 -> MediaType.Audio
+                            3 -> MediaType.Video
+                            else -> MediaType.PDF
+                        },
+                        lastModified = cursor.getLong(dateModifiedColumn) * 1000,
+                        size = cursor.getLong(sizeColumn),
+                        filePath = cursor.getString(dataColumn)
+                    )
+                }
+            }
+            return mediaList
+        }
 
-        MediaType.Image, MediaType.Video -> GlideImage(
-            model = "file://${mediaInfo.filePath}",
-            contentDescription = null,
-            modifier = modifier
-        )
+        fun getMediaFolders(
+            selectedMediaType: SelectedMediaType,
+            sortBy: SortBy,
+            contentResolver: ContentResolver
+        ): List<MediaInfo> {
+            val folderMap = mutableMapOf<String, MediaInfo>()
+            contentResolver.query(
+                MediaStore.Files.getContentUri("external"),
+                arrayOf("_data", "date_modified", "_size"),
+                getSelection(selectedMediaType),
+                null,
+                null
+            )?.use { cursor ->
+                val dataCol = cursor.getColumnIndexOrThrow("_data")
+                val lastModifiedCol = cursor.getColumnIndexOrThrow("date_modified")
+                val sizeCol = cursor.getColumnIndexOrThrow("_size")
+                while (cursor.moveToNext()) {
+                    val lastModified = cursor.getLong(lastModifiedCol) * 1000
+                    val size = cursor.getLong(sizeCol)
+                    val parentFile = File(cursor.getString(dataCol)).parentFile
+                    val path = parentFile!!.path
+                    if (folderMap.containsKey(path)) {
+                        if (folderMap[path]!!.lastModified < lastModified)
+                            folderMap[path]!!.lastModified = lastModified
+                        folderMap[path]!!.size += size
+                    } else {
+                        folderMap[path] = MediaInfo(
+                            name = parentFile.name,
+                            mediaType = null,
+                            lastModified = lastModified,
+                            size = size,
+                            filePath = path
+                        )
+                    }
+                }
+            }
+            return when (sortBy) {
+                SortBy.Name -> folderMap.values.sortedBy { it.name }
+                SortBy.LastModified -> folderMap.values.sortedByDescending { it.lastModified }
+                SortBy.Size -> folderMap.values.sortedByDescending { it.size }
+            }
+        }
     }
 }
