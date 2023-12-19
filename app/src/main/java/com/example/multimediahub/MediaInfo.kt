@@ -84,7 +84,7 @@ class MediaInfo(
             }
             contentResolver.query(
                 MediaStore.Files.getContentUri("external"),
-                arrayOf("_display_name", "media_type", "date_modified", "_size", "_data"),
+                arrayOf("media_type", "date_modified", "_size", "_data"),
                 selection,
                 null,
                 when (sortBy) {
@@ -93,16 +93,15 @@ class MediaInfo(
                     SortBy.LastModified -> "date_modified DESC"
                 }
             )?.use { cursor ->
-                val nameColumn = cursor.getColumnIndexOrThrow("_display_name")
                 val mediaTypeColumn = cursor.getColumnIndexOrThrow("media_type")
                 val dateModifiedColumn = cursor.getColumnIndexOrThrow("date_modified")
                 val sizeColumn = cursor.getColumnIndexOrThrow("_size")
                 val dataColumn = cursor.getColumnIndexOrThrow("_data")
                 while (cursor.moveToNext()) {
-                    val mediaType = cursor.getInt(mediaTypeColumn)
+                    val path = cursor.getString(dataColumn)
                     mediaList += MediaInfo(
-                        name = cursor.getString(nameColumn),
-                        mediaType = when (mediaType) {
+                        name = File(path).name,
+                        mediaType = when (cursor.getInt(mediaTypeColumn)) {
                             1 -> MediaType.Image
                             2 -> MediaType.Audio
                             3 -> MediaType.Video

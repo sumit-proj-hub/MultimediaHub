@@ -77,7 +77,7 @@ fun MediaGridItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
         Column {
             mediaInfo.MediaIcon(
                 Modifier
-                    .height(120.dp)
+                    .height(100.dp)
                     .fillMaxWidth()
             )
             Text(
@@ -85,9 +85,10 @@ fun MediaGridItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
                 textAlign = TextAlign.Center,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 3.dp)
+                    .padding(horizontal = 3.dp, vertical = 2.dp)
             )
         }
     }
@@ -119,13 +120,21 @@ fun MediaListItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
                     .defaultMinSize(minHeight = 50.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = mediaInfo.name, fontSize = 18.sp)
+                Text(text = mediaInfo.name, style = MaterialTheme.typography.bodyLarge)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = formatMilliseconds(mediaInfo.lastModified), color = Color.Gray)
-                    Text(text = formatFileSize(mediaInfo.size), color = Color.Gray)
+                    Text(
+                        text = formatMilliseconds(mediaInfo.lastModified),
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = formatFileSize(mediaInfo.size),
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
