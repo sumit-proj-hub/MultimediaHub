@@ -1,5 +1,7 @@
 package com.example.multimediahub.screens
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,9 +9,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
@@ -29,6 +37,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,7 +49,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -48,6 +60,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.multimediahub.FilesDisplayInfo
+import com.example.multimediahub.ReducedMediaInfo
 import com.example.multimediahub.SelectedMediaType
 import com.example.multimediahub.SortBy
 import com.example.multimediahub.ViewBy
@@ -80,7 +93,8 @@ private sealed class BottomNavItem(
 private fun BottomNavGraph(
     displayInfo: FilesDisplayInfo,
     navController: NavHostController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    onBackHandler: () -> Boolean
 ) {
     NavHost(
         navController = navController,
@@ -88,9 +102,25 @@ private fun BottomNavGraph(
         modifier = Modifier.padding(paddingValues = paddingValues)
     ) {
         val modifier = Modifier.padding(8.dp)
-        composable(BottomNavItem.Recent.route) { RecentScreen(displayInfo, modifier = modifier) }
-        composable(BottomNavItem.Files.route) { FilesScreen(displayInfo, modifier = modifier) }
-        composable(BottomNavItem.Folders.route) { FoldersScreen(displayInfo, modifier = modifier) }
+        val backHandler = {
+            if (onBackHandler()) {
+                navController.popBackStack()
+                if (navController.currentBackStack.value.isEmpty())
+                    (navController.context as Activity).finish()
+            }
+        }
+        composable(BottomNavItem.Recent.route) {
+            BackHandler { backHandler() }
+            RecentScreen(displayInfo, modifier = modifier)
+        }
+        composable(BottomNavItem.Files.route) {
+            BackHandler { backHandler() }
+            FilesScreen(displayInfo, modifier = modifier)
+        }
+        composable(BottomNavItem.Folders.route) {
+            BackHandler { backHandler() }
+            FoldersScreen(displayInfo, modifier = modifier)
+        }
     }
 }
 
@@ -119,6 +149,7 @@ fun MainScreen() {
     var selectedMediaType by rememberSaveable { mutableStateOf(SelectedMediaType.Default) }
     var sortBy by rememberSaveable { mutableStateOf(SortBy.Default) }
     var viewBy by rememberSaveable { mutableStateOf(ViewBy.Default) }
+    var isSearchBarActive by rememberSaveable { mutableStateOf(false) }
     val displayInfo = FilesDisplayInfo(selectedMediaType, sortBy, viewBy)
     Surface {
         Scaffold(
@@ -138,34 +169,52 @@ fun MainScreen() {
                             ViewBy.List -> ViewBy.Grid
                             ViewBy.Grid -> ViewBy.List
                         }
+                    },
+                    isSearchBarActive = isSearchBarActive,
+                    setSearchBarActive = {
+                        isSearchBarActive = it
                     }
                 )
             },
-            bottomBar = { BottomNavigationBar(navController = navController) },
+            bottomBar = { if (!isSearchBarActive) BottomNavigationBar(navController = navController) },
         ) {
-            BottomNavGraph(displayInfo, navController = navController, paddingValues = it)
+            BottomNavGraph(displayInfo, navController = navController, paddingValues = it) {
+                if (isSearchBarActive) {
+                    isSearchBarActive = false
+                    return@BottomNavGraph false
+                }
+                return@BottomNavGraph true
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FileSearch() {
+private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean) -> Unit) {
     var query by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf(false) }
+    var mediaList by remember { mutableStateOf<List<ReducedMediaInfo>?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val contentResolver = LocalContext.current.contentResolver
+    if (!isSearchBarActive)
+        query = ""
+    LaunchedEffect(key1 = isSearchBarActive) {
+        mediaList =
+            if (isSearchBarActive) ReducedMediaInfo.getReducedMediaList(contentResolver) else null
+    }
     SearchBar(
         query = query,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 6.dp),
         onQueryChange = { query = it },
-        onSearch = {},
-        active = active,
-        onActiveChange = { active = it },
+        onSearch = { keyboardController?.hide() },
+        active = isSearchBarActive,
+        onActiveChange = { setSearchBarActive(it) },
         placeholder = { Text("Search a file") },
         leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search") },
         trailingIcon = {
-            if (active) {
+            if (isSearchBarActive) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
@@ -173,13 +222,41 @@ private fun FileSearch() {
                         if (query.isNotEmpty()) {
                             query = ""
                         } else {
-                            active = false
+                            setSearchBarActive(false)
                         }
                     })
             }
         }
     ) {
-
+        if (query.isEmpty())
+            return@SearchBar
+        val scrollBarState = rememberLazyListState()
+        LazyColumn(
+            state = scrollBarState,
+            modifier = Modifier.simpleVerticalScrollbar(scrollBarState)
+        ) {
+            items(mediaList?.filter { it.name.contains(query, true) } ?: emptyList()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    it.MediaIcon(
+                        Modifier
+                            .size(50.dp)
+                            .padding(4.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = it.name,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -270,10 +347,12 @@ private fun Head(
     displayInfo: FilesDisplayInfo,
     onMediaTypeClick: (selectedType: SelectedMediaType) -> Unit,
     onSortByClick: () -> Unit,
-    onViewByClick: () -> Unit
+    onViewByClick: () -> Unit,
+    isSearchBarActive: Boolean,
+    setSearchBarActive: (Boolean) -> Unit
 ) {
     Column {
-        FileSearch()
+        FileSearch(isSearchBarActive, setSearchBarActive)
         MediaTypeSelector(displayInfo.selectedMediaType, onMediaTypeClick)
         SortAndView(displayInfo.sortBy, displayInfo.viewBy, onSortByClick, onViewByClick)
     }

@@ -5,11 +5,14 @@ import android.provider.MediaStore
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -158,6 +161,61 @@ class MediaInfo(
                 SortBy.LastModified -> folderMap.values.sortedByDescending { it.lastModified }
                 SortBy.Size -> folderMap.values.sortedByDescending { it.size }
             }
+        }
+    }
+}
+
+class ReducedMediaInfo(
+    val name: String,
+    val mediaType: MediaType,
+    val filePath: String
+) {
+    @Composable
+    fun MediaIcon(modifier: Modifier = Modifier) {
+        Icon(
+            imageVector = when (mediaType) {
+                MediaType.Image -> Icons.Default.Image
+                MediaType.Audio -> Icons.Default.AudioFile
+                MediaType.Video -> Icons.Default.VideoFile
+                MediaType.PDF -> Icons.Default.PictureAsPdf
+            },
+            tint = when (mediaType) {
+                MediaType.Image -> Color.Cyan
+                MediaType.Audio -> colorResource(R.color.purple_200)
+                MediaType.Video -> colorResource(R.color.orange)
+                MediaType.PDF -> colorResource(R.color.light_red)
+            }, contentDescription = mediaType.toString(), modifier = modifier
+        )
+    }
+
+    companion object {
+        fun getReducedMediaList(contentResolver: ContentResolver): List<ReducedMediaInfo> {
+            val mediaList = mutableListOf<ReducedMediaInfo>()
+            contentResolver.query(
+                MediaStore.Files.getContentUri("external"),
+                arrayOf("_display_name", "media_type", "_data"),
+                "media_type IN (1,2,3) OR mime_type='application/pdf'",
+                null,
+                "date_modified"
+            )?.use {
+                val nameCol = it.getColumnIndexOrThrow("_display_name")
+                val mediaTypeCol = it.getColumnIndexOrThrow("media_type")
+                val dataCol = it.getColumnIndexOrThrow("_data")
+                while (it.moveToNext()) {
+                    val filePath = it.getString(dataCol)
+                    mediaList += ReducedMediaInfo(
+                        name = it.getString(nameCol) ?: File(filePath).name,
+                        mediaType = when (it.getInt(mediaTypeCol)) {
+                            1 -> MediaType.Image
+                            2 -> MediaType.Audio
+                            3 -> MediaType.Video
+                            else -> MediaType.PDF
+                        },
+                        filePath = filePath
+                    )
+                }
+            }
+            return mediaList
         }
     }
 }
