@@ -2,6 +2,7 @@ package com.example.multimediahub.screens
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import com.example.multimediahub.MediaInfo
 import com.example.multimediahub.MediaType
 import com.example.multimediahub.ViewBy
+import com.example.multimediahub.imageviewer.ImageViewerActivity
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -274,7 +276,7 @@ fun Modifier.simpleVerticalScrollbar(
     }
 }
 
-fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
+private fun addToRecent(context: Context, mediaType: MediaType, filePath: String) {
     val recentFile = File("${context.filesDir}/recent.map")
     if (!recentFile.exists()) {
         ObjectOutputStream(FileOutputStream(recentFile)).use {
@@ -288,5 +290,20 @@ fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
         ObjectOutputStream(FileOutputStream(recentFile)).use {
             it.writeObject(recentMap)
         }
+    }
+}
+
+fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
+    addToRecent(context, mediaType, filePath)
+    val intent = Intent(context, ImageViewerActivity::class.java)
+    when (mediaType) {
+        MediaType.Image -> {
+            intent.putExtra("path", filePath)
+            context.startActivity(intent)
+        }
+
+        MediaType.Audio -> TODO()
+        MediaType.Video -> TODO()
+        MediaType.PDF -> TODO()
     }
 }
