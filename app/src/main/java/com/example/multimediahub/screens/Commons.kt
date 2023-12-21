@@ -1,11 +1,13 @@
 package com.example.multimediahub.screens
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -18,8 +20,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +45,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.multimediahub.MediaInfo
+import com.example.multimediahub.MediaType
+import com.example.multimediahub.ViewBy
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -141,6 +155,41 @@ fun MediaListItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun ShowAllMedia(
+    viewBy: ViewBy,
+    listState: LazyListState,
+    gridState: LazyGridState,
+    onClick: (MediaInfo) -> Unit,
+    list: List<MediaInfo>,
+    modifier: Modifier
+) {
+    when (viewBy) {
+        ViewBy.List -> {
+            LazyColumn(
+                modifier = modifier.simpleVerticalScrollbar(listState),
+                state = listState
+            ) {
+                items(list) {
+                    MediaListItem(it, Modifier.clickable { onClick(it) })
+                }
+            }
+        }
+
+        ViewBy.Grid -> {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(135.dp),
+                modifier = modifier.simpleVerticalScrollbar(gridState),
+                state = gridState
+            ) {
+                items(list) {
+                    MediaGridItem(it, Modifier.clickable { onClick(it) })
+                }
+            }
+        }
+    }
+}
+
 private fun formatMilliseconds(milliseconds: Long): String {
     val date = Date(milliseconds)
     val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
@@ -161,15 +210,13 @@ private fun formatFileSize(size: Long): String {
 
 @Composable
 fun Modifier.simpleVerticalScrollbar(
-    state: LazyListState,
-    width: Dp = 4.dp
+    state: LazyListState, width: Dp = 4.dp
 ): Modifier {
     val targetAlpha = if (state.isScrollInProgress) 1f else 0f
     val duration = if (state.isScrollInProgress) 150 else 500
 
     val alpha by animateFloatAsState(
-        targetValue = targetAlpha,
-        animationSpec = tween(durationMillis = duration), label = ""
+        targetValue = targetAlpha, animationSpec = tween(durationMillis = duration), label = ""
     )
 
     return drawWithContent {
@@ -196,15 +243,13 @@ fun Modifier.simpleVerticalScrollbar(
 
 @Composable
 fun Modifier.simpleVerticalScrollbar(
-    state: LazyGridState,
-    width: Dp = 4.dp
+    state: LazyGridState, width: Dp = 4.dp
 ): Modifier {
     val targetAlpha = if (state.isScrollInProgress) 1f else 0f
     val duration = if (state.isScrollInProgress) 150 else 500
 
     val alpha by animateFloatAsState(
-        targetValue = targetAlpha,
-        animationSpec = tween(durationMillis = duration), label = ""
+        targetValue = targetAlpha, animationSpec = tween(durationMillis = duration), label = ""
     )
 
     return drawWithContent {
@@ -225,6 +270,23 @@ fun Modifier.simpleVerticalScrollbar(
                 size = Size(width.toPx(), scrollbarHeight),
                 alpha = alpha
             )
+        }
+    }
+}
+
+fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
+    val recentFile = File("${context.filesDir}/recent.map")
+    if (!recentFile.exists()) {
+        ObjectOutputStream(FileOutputStream(recentFile)).use {
+            it.writeObject(mapOf(filePath to Pair(mediaType, System.currentTimeMillis())))
+        }
+        return
+    }
+    ObjectInputStream(FileInputStream(recentFile)).use { input ->
+        val recentMap = (input.readObject() as Map<*, *>).toMutableMap()
+        recentMap[filePath] = Pair(mediaType, System.currentTimeMillis())
+        ObjectOutputStream(FileOutputStream(recentFile)).use {
+            it.writeObject(recentMap)
         }
     }
 }

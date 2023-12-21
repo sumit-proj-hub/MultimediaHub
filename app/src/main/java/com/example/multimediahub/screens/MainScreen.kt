@@ -150,13 +150,21 @@ fun MainScreen() {
     var sortBy by rememberSaveable { mutableStateOf(SortBy.Default) }
     var viewBy by rememberSaveable { mutableStateOf(ViewBy.Default) }
     var isSearchBarActive by rememberSaveable { mutableStateOf(false) }
+    var allowSort by rememberSaveable { mutableStateOf(false) }
     val displayInfo = FilesDisplayInfo(selectedMediaType, sortBy, viewBy)
+    LaunchedEffect(key1 = null) {
+        navController.addOnDestinationChangedListener { controller, _, _ ->
+            allowSort =
+                controller.currentBackStackEntry?.destination?.route != BottomNavItem.Recent.route
+        }
+    }
     Surface {
         Scaffold(
             topBar = {
                 Head(
                     displayInfo = displayInfo,
                     onMediaTypeClick = { selectedMediaType = it },
+                    allowSort = allowSort,
                     onSortByClick = {
                         sortBy = when (sortBy) {
                             SortBy.Name -> SortBy.LastModified
@@ -224,13 +232,15 @@ private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean)
                         } else {
                             setSearchBarActive(false)
                         }
-                    })
+                    }
+                )
             }
         }
     ) {
         if (query.isEmpty())
             return@SearchBar
         val scrollBarState = rememberLazyListState()
+        val context = LocalContext.current
         LazyColumn(
             state = scrollBarState,
             modifier = Modifier.simpleVerticalScrollbar(scrollBarState)
@@ -239,7 +249,8 @@ private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(3.dp),
+                        .padding(3.dp)
+                        .clickable { onMediaClick(context, it.mediaType, it.filePath) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     it.MediaIcon(
@@ -311,6 +322,7 @@ private fun SwitchButton(
 private fun SortAndView(
     sortBy: SortBy,
     viewBy: ViewBy,
+    allowSort: Boolean,
     onSortByClick: () -> Unit,
     onViewByClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -322,15 +334,17 @@ private fun SortAndView(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "Sort By: $sortBy",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .border(0.5.dp, LocalContentColor.current)
-                .padding(vertical = 3.dp, horizontal = 6.dp)
-                .clickable { onSortByClick() }
-        )
+        if (allowSort) {
+            Text(
+                text = "Sort By: $sortBy",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .border(0.5.dp, LocalContentColor.current)
+                    .padding(vertical = 3.dp, horizontal = 6.dp)
+                    .clickable { onSortByClick() }
+            )
+        } else Spacer(modifier = Modifier)
         Icon(
             imageVector = when (viewBy) {
                 ViewBy.List -> Icons.Default.GridView
@@ -348,12 +362,19 @@ private fun Head(
     onMediaTypeClick: (selectedType: SelectedMediaType) -> Unit,
     onSortByClick: () -> Unit,
     onViewByClick: () -> Unit,
+    allowSort: Boolean,
     isSearchBarActive: Boolean,
     setSearchBarActive: (Boolean) -> Unit
 ) {
     Column {
         FileSearch(isSearchBarActive, setSearchBarActive)
         MediaTypeSelector(displayInfo.selectedMediaType, onMediaTypeClick)
-        SortAndView(displayInfo.sortBy, displayInfo.viewBy, onSortByClick, onViewByClick)
+        SortAndView(
+            displayInfo.sortBy,
+            displayInfo.viewBy,
+            allowSort,
+            onSortByClick,
+            onViewByClick
+        )
     }
 }
