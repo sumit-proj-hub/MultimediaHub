@@ -80,6 +80,7 @@ fun RecentScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
     }
 }
 
+@Suppress("UNCHECKED_CAST")
 private suspend fun getRecentMedia(
     context: Context,
     filterMediaType: SelectedMediaType,
