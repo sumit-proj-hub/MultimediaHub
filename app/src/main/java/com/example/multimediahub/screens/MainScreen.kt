@@ -152,7 +152,7 @@ fun MainScreen() {
     var isSearchBarActive by rememberSaveable { mutableStateOf(false) }
     var allowSort by rememberSaveable { mutableStateOf(false) }
     val displayInfo = FilesDisplayInfo(selectedMediaType, sortBy, viewBy)
-    LaunchedEffect(key1 = null) {
+    LaunchedEffect(Unit) {
         navController.addOnDestinationChangedListener { controller, _, _ ->
             allowSort =
                 controller.currentBackStackEntry?.destination?.route != BottomNavItem.Recent.route
@@ -206,7 +206,7 @@ private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean)
     val contentResolver = LocalContext.current.contentResolver
     if (!isSearchBarActive)
         query = ""
-    LaunchedEffect(key1 = isSearchBarActive) {
+    LaunchedEffect(isSearchBarActive) {
         mediaList =
             if (isSearchBarActive) ReducedMediaInfo.getReducedMediaList(contentResolver) else null
     }

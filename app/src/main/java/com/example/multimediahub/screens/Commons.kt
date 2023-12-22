@@ -49,6 +49,7 @@ import com.example.multimediahub.MediaInfo
 import com.example.multimediahub.MediaType
 import com.example.multimediahub.ViewBy
 import com.example.multimediahub.imageviewer.ImageViewerActivity
+import com.example.multimediahub.videoplayer.VideoPlayerActivity
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -295,15 +296,19 @@ private fun addToRecent(context: Context, mediaType: MediaType, filePath: String
 
 fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
     addToRecent(context, mediaType, filePath)
-    val intent = Intent(context, ImageViewerActivity::class.java)
     when (mediaType) {
         MediaType.Image -> {
+            val intent = Intent(context, ImageViewerActivity::class.java)
             intent.putExtra("path", filePath)
             context.startActivity(intent)
         }
 
         MediaType.Audio -> TODO()
-        MediaType.Video -> TODO()
+        MediaType.Video -> {
+            val intent = Intent(context, VideoPlayerActivity::class.java)
+            intent.putExtra("path", filePath)
+            context.startActivity(intent)
+        }
         MediaType.PDF -> TODO()
     }
 }

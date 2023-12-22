@@ -40,7 +40,7 @@ fun RecentScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
     var fileList by remember { mutableStateOf(listOf<MediaInfo>()) }
     var mediaType by remember { mutableStateOf<SelectedMediaType?>(null) }
     val context = LocalContext.current
-    LaunchedEffect(key1 = displayInfo.selectedMediaType) {
+    LaunchedEffect(displayInfo.selectedMediaType) {
         fileList = getRecentMedia(context, displayInfo.selectedMediaType) {
             mediaType = displayInfo.selectedMediaType
         }

@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">MultimediaHub</string>
     <string name="title_activity_image_viewer">ImageViewerActivity</string>
+    <string name="title_activity_video_player">VideoPlayerActivity</string>
 </resources>

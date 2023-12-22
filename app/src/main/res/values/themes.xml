@@ -2,4 +2,6 @@
 <resources>
 
     <style name="Theme.MultimediaHub" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.MultimediaHub.Fullscreen" parent="android:Theme.Material.NoActionBar.Fullscreen" />
 </resources>

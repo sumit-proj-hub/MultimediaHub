@@ -34,7 +34,7 @@ fun FoldersScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) 
     val context = LocalContext.current
     if (folderOpened == null) {
         var folderList by remember { mutableStateOf(listOf<MediaInfo>()) }
-        LaunchedEffect(key1 = listOf(displayInfo.selectedMediaType, displayInfo.sortBy)) {
+        LaunchedEffect(displayInfo.selectedMediaType, displayInfo.sortBy) {
             folderList = MediaInfo.getMediaFolders(
                 displayInfo.selectedMediaType, displayInfo.sortBy, context.contentResolver
             )
@@ -64,7 +64,7 @@ fun FoldersScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) 
     }
 
     var fileList by remember { mutableStateOf(listOf<MediaInfo>()) }
-    LaunchedEffect(key1 = listOf(displayInfo.selectedMediaType, displayInfo.sortBy)) {
+    LaunchedEffect(displayInfo.selectedMediaType, displayInfo.sortBy) {
         fileList = MediaInfo.getMediaList(
             context.contentResolver, displayInfo.selectedMediaType, displayInfo.sortBy, folderOpened
         )

@@ -23,7 +23,7 @@ fun FilesScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
     var mediaType by remember { mutableStateOf<SelectedMediaType?>(null) }
     var sortBy by remember { mutableStateOf<SortBy?>(null) }
     val context = LocalContext.current
-    LaunchedEffect(key1 = listOf(displayInfo.selectedMediaType, displayInfo.sortBy)) {
+    LaunchedEffect(displayInfo.selectedMediaType, displayInfo.sortBy) {
         fileList = MediaInfo.getMediaList(
             context.contentResolver,
             displayInfo.selectedMediaType,
