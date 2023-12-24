@@ -47,22 +47,38 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.R
 import com.example.multimediahub.screens.MessageText
 import java.io.File
-import java.util.UUID
 
 class VideoPlayerActivity : ComponentActivity() {
     private var isLandscape: Boolean? = null
+    private lateinit var player: ExoPlayer
+    private lateinit var mediaSession: MediaSession
 
+    @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val path = intent.extras?.getString("path")
         isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        setContent {
-            if (path == null) {
-                MessageText("Failed to load video.")
-            } else {
-                Content(path)
-            }
+        if (path != null) {
+            player = ExoPlayer.Builder(this)
+                .setSeekForwardIncrementMs(10000L)
+                .setSeekBackIncrementMs(10000L)
+                .build()
+            mediaSession = MediaSession.Builder(this@VideoPlayerActivity, player).build()
+            player.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(path))))
+            player.prepare()
         }
+        setContent {
+            if (path == null)
+                MessageText("Failed to load video.")
+            else
+                Content(File(path).name)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (this::player.isInitialized) mediaSession.release()
+        if (this::player.isInitialized) player.release()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -71,16 +87,16 @@ class VideoPlayerActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun Content(path: String) {
+    private fun Content(fileName: String) {
         var isControllerVisible by remember { mutableStateOf(true) }
         Surface(color = Color.Black) {
             Box {
-                VideoPlayer(videoUri = Uri.fromFile(File(path)), controllerVisibilityListener = {
+                VideoPlayer(controllerVisibilityListener = {
                     isControllerVisible = it
                 })
                 if (isControllerVisible) {
                     Row(
-                        Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                        Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -93,7 +109,7 @@ class VideoPlayerActivity : ComponentActivity() {
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
-                            text = File(path).name,
+                            text = fileName,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = Color.White,
@@ -108,31 +124,21 @@ class VideoPlayerActivity : ComponentActivity() {
     @OptIn(UnstableApi::class)
     @Composable
     private fun VideoPlayer(
-        videoUri: Uri,
         controllerVisibilityListener: (Boolean) -> Unit,
         modifier: Modifier = Modifier
     ) {
-        val player = ExoPlayer.Builder(this)
-                .setSeekForwardIncrementMs(10000L)
-                .setSeekBackIncrementMs(10000L)
-                .build()
         var currentTime by rememberSaveable { mutableStateOf(0L) }
         var shouldPlay by rememberSaveable { mutableStateOf(true) }
         var lifecycle by remember { mutableStateOf(Lifecycle.Event.ON_CREATE) }
         val lifecycleOwner = LocalLifecycleOwner.current
 
-        player.setMediaItem(MediaItem.fromUri(videoUri))
-        MediaSession.Builder(this, player).setId(UUID.randomUUID().toString()).build()
-
         DisposableEffect(Unit) {
-            player.prepare()
             player.seekTo(currentTime)
             if (shouldPlay)
                 player.play()
             onDispose {
                 currentTime = player.currentPosition
                 shouldPlay = player.isPlaying
-                player.release()
             }
         }
 

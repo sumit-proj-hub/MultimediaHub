@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import com.example.multimediahub.MediaInfo
 import com.example.multimediahub.MediaType
 import com.example.multimediahub.ViewBy
+import com.example.multimediahub.audioplayer.AudioPlayerActivity
 import com.example.multimediahub.imageviewer.ImageViewerActivity
 import com.example.multimediahub.videoplayer.VideoPlayerActivity
 import java.io.File
@@ -296,19 +297,12 @@ private fun addToRecent(context: Context, mediaType: MediaType, filePath: String
 
 fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
     addToRecent(context, mediaType, filePath)
-    when (mediaType) {
-        MediaType.Image -> {
-            val intent = Intent(context, ImageViewerActivity::class.java)
-            intent.putExtra("path", filePath)
-            context.startActivity(intent)
-        }
-
-        MediaType.Audio -> TODO()
-        MediaType.Video -> {
-            val intent = Intent(context, VideoPlayerActivity::class.java)
-            intent.putExtra("path", filePath)
-            context.startActivity(intent)
-        }
+    val intent = when (mediaType) {
+        MediaType.Image -> Intent(context, ImageViewerActivity::class.java)
+        MediaType.Audio -> Intent(context, AudioPlayerActivity::class.java)
+        MediaType.Video -> Intent(context, VideoPlayerActivity::class.java)
         MediaType.PDF -> TODO()
     }
+    intent.putExtra("path", filePath)
+    context.startActivity(intent)
 }

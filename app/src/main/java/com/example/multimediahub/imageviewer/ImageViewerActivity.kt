@@ -34,7 +34,7 @@ class ImageViewerActivity : ComponentActivity() {
             if (path == null) {
                 MessageText("Failed to load image.")
             } else {
-                Content(path = path)
+                Content(path)
             }
         }
     }

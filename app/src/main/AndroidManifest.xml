@@ -24,6 +24,11 @@
         android:theme="@style/Theme.MultimediaHub"
         tools:targetApi="31">
         <activity
+            android:name=".audioplayer.AudioPlayerActivity"
+            android:exported="false"
+            android:label="@string/title_activity_audio_player"
+            android:theme="@style/Theme.MultimediaHub" />
+        <activity
             android:name=".videoplayer.VideoPlayerActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
