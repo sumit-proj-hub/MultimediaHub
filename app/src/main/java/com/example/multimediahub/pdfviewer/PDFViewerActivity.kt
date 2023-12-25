@@ -83,7 +83,7 @@ class PDFViewerActivity : AppCompatActivity() {
                 builder.setPositiveButton("GO") { dialog, _ ->
                     val gotoPage = editText.text.toString().toIntOrNull()
                     if (gotoPage == null) dialog.cancel()
-                    else pdfView.jumpTo(gotoPage)
+                    else pdfView.jumpTo(gotoPage - 1)
                 }
                 builder.setNegativeButton("Cancel") { dialog, _ ->
                     dialog.cancel()
