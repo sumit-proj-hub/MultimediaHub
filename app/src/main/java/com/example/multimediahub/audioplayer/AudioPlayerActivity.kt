@@ -68,7 +68,7 @@ class AudioPlayerActivity : ComponentActivity() {
         }
         setContent {
             if (path == null)
-                MessageText("Failed to load image.")
+                MessageText("Failed to load audio.")
             else
                 Content(path)
         }

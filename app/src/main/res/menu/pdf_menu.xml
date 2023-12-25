@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/nightModeBtn"
+        android:icon="@drawable/baseline_dark_mode_24"
+        android:title="@string/night_mode"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/pdfJump"
+        android:icon="@drawable/baseline_goto_24"
+        android:title="@string/goto_page"
+        app:showAsAction="ifRoom" />
+
+</menu>

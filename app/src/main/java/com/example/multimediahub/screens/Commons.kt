@@ -50,6 +50,7 @@ import com.example.multimediahub.MediaType
 import com.example.multimediahub.ViewBy
 import com.example.multimediahub.audioplayer.AudioPlayerActivity
 import com.example.multimediahub.imageviewer.ImageViewerActivity
+import com.example.multimediahub.pdfviewer.PDFViewerActivity
 import com.example.multimediahub.videoplayer.VideoPlayerActivity
 import java.io.File
 import java.io.FileInputStream
@@ -301,7 +302,7 @@ fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
         MediaType.Image -> Intent(context, ImageViewerActivity::class.java)
         MediaType.Audio -> Intent(context, AudioPlayerActivity::class.java)
         MediaType.Video -> Intent(context, VideoPlayerActivity::class.java)
-        MediaType.PDF -> TODO()
+        MediaType.PDF -> Intent(context, PDFViewerActivity::class.java)
     }
     intent.putExtra("path", filePath)
     context.startActivity(intent)
