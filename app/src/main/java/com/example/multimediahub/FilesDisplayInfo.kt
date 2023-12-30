@@ -9,6 +9,16 @@ enum class SelectedMediaType {
 
 enum class SortBy {
     Name, LastModified, Size;
+
+    val string: String
+        get() {
+            return when (this) {
+                Name -> "Name"
+                LastModified -> "Last Modified"
+                Size -> "Size"
+            }
+        }
+
     companion object {
         val Default = LastModified
     }

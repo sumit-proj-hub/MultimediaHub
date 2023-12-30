@@ -3,7 +3,6 @@ package com.example.multimediahub.screens
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,20 +14,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FileCopy
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -165,13 +167,7 @@ fun MainScreen() {
                     displayInfo = displayInfo,
                     onMediaTypeClick = { selectedMediaType = it },
                     allowSort = allowSort,
-                    onSortByClick = {
-                        sortBy = when (sortBy) {
-                            SortBy.Name -> SortBy.LastModified
-                            SortBy.LastModified -> SortBy.Size
-                            SortBy.Size -> SortBy.Name
-                        }
-                    },
+                    onSortByClick = { sortBy = it },
                     onViewByClick = {
                         viewBy = when (viewBy) {
                             ViewBy.List -> ViewBy.Grid
@@ -323,27 +319,57 @@ private fun SortAndView(
     sortBy: SortBy,
     viewBy: ViewBy,
     allowSort: Boolean,
-    onSortByClick: () -> Unit,
+    onSortByClick: (SortBy) -> Unit,
     onViewByClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isSortByExpanded by remember { mutableStateOf(false) }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
         if (allowSort) {
             Text(
-                text = "Sort By: $sortBy",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Sort By: ",
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .border(0.5.dp, LocalContentColor.current)
-                    .padding(vertical = 3.dp, horizontal = 6.dp)
-                    .clickable { onSortByClick() }
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(start = 6.dp, top = 3.dp, bottom = 3.dp)
             )
+            Row(
+                modifier = modifier
+                    .padding(vertical = 3.dp)
+                    .clickable { isSortByExpanded = !isSortByExpanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = sortBy.string,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Dropdown Arrow"
+                )
+                DropdownMenu(
+                    expanded = isSortByExpanded,
+                    onDismissRequest = { isSortByExpanded = false }) {
+                    SortBy.values().forEach {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = it.string,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            },
+                            onClick = {
+                                onSortByClick(it)
+                                isSortByExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
         } else Spacer(modifier = Modifier)
         Icon(
             imageVector = when (viewBy) {
@@ -351,7 +377,10 @@ private fun SortAndView(
                 ViewBy.Grid -> Icons.AutoMirrored.Filled.List
             },
             contentDescription = null,
-            modifier = Modifier.clickable { onViewByClick() }
+            modifier = Modifier
+                .weight(1f)
+                .wrapContentWidth(Alignment.End)
+                .clickable { onViewByClick() }
         )
     }
 }
@@ -360,7 +389,7 @@ private fun SortAndView(
 private fun Head(
     displayInfo: FilesDisplayInfo,
     onMediaTypeClick: (selectedType: SelectedMediaType) -> Unit,
-    onSortByClick: () -> Unit,
+    onSortByClick: (SortBy) -> Unit,
     onViewByClick: () -> Unit,
     allowSort: Boolean,
     isSearchBarActive: Boolean,

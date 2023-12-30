@@ -1,6 +1,7 @@
 package com.example.multimediahub
 
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -8,7 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.widget.Toast
+import android.view.ContextThemeWrapper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,31 +48,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestStoragePermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                Toast.makeText(
-                    this,
-                    "Please allow storage permissions to access files.",
-                    Toast.LENGTH_LONG
-                ).show()
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                val uri = Uri.fromParts("package", packageName, null)
-                intent.data = uri
-                startActivity(intent)
-            }
-        } else {
-            if (checkSelfPermission(READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
-                if (shouldShowRequestPermissionRationale(READ_EXTERNAL_STORAGE)) {
-                    Toast.makeText(
-                        this,
-                        "Please allow storage permissions to access files.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    requestPermissions(arrayOf(READ_EXTERNAL_STORAGE), 0)
+        if (permissionState()) return
+        AlertDialog.Builder(ContextThemeWrapper(this, R.style.DarkDialogTheme))
+            .setTitle("Allow storage permissions")
+            .setMessage("This application needs storage permissions to access media files.")
+            .setPositiveButton("OK") { _, _ ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    val uri = Uri.fromParts("package", packageName, null)
+                    intent.data = uri
+                    startActivity(intent)
                 } else {
                     requestPermissions(arrayOf(READ_EXTERNAL_STORAGE), 0)
                 }
             }
-        }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
     }
 }
