@@ -1,5 +1,6 @@
 package com.example.multimediahub.imageviewer
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,25 +23,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.multimediahub.getUriAndNameFromIntent
 import com.example.multimediahub.screens.MessageText
 import me.saket.telephoto.zoomable.glide.ZoomableGlideImage
-import java.io.File
 
 class ImageViewerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val path = intent.extras?.getString("path")
+        val (uri, fileName) = getUriAndNameFromIntent(this, intent)
         setContent {
-            if (path == null) {
+            if (uri == null) {
                 MessageText("Failed to load image.")
             } else {
-                Content(path)
+                Content(uri, fileName ?: "Image")
             }
         }
     }
 
     @Composable
-    private fun Content(path: String) {
+    private fun Content(uri: Uri, fileName: String) {
         Surface(color = Color.Black) {
             Column {
                 Row(
@@ -57,7 +58,7 @@ class ImageViewerActivity : ComponentActivity() {
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
-                        text = File(path).name,
+                        text = fileName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = Color.White,
@@ -65,7 +66,7 @@ class ImageViewerActivity : ComponentActivity() {
                     )
                 }
                 ZoomableGlideImage(
-                    model = "file://$path",
+                    model = uri,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize()
                 )

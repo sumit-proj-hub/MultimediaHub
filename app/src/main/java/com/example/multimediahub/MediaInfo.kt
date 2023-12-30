@@ -1,7 +1,11 @@
 package com.example.multimediahub
 
 import android.content.ContentResolver
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Folder
@@ -17,6 +21,7 @@ import androidx.compose.ui.res.colorResource
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import java.io.File
+
 
 enum class MediaType { Image, Audio, Video, PDF }
 
@@ -218,4 +223,37 @@ class ReducedMediaInfo(
             return mediaList
         }
     }
+}
+
+private fun getFileNameFromUri(context: Context, uri: Uri): String? {
+    var result: String? = null
+    if (uri.scheme == "content") {
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            .use {
+                if (it != null && it.moveToFirst())
+                    result = it.getString(it.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+            }
+    }
+    if (result == null) {
+        result = uri.lastPathSegment
+    }
+    return result
+}
+
+fun getUriAndNameFromIntent(context: Context, intent: Intent): Pair<Uri?, String?> {
+    var uri: Uri? = null
+    var fileName: String? = null
+    if (intent.action == Intent.ACTION_VIEW) {
+        uri = intent.data
+        if (uri != null)
+            fileName = getFileNameFromUri(context, uri)
+    } else {
+        val path = intent.extras?.getString("path")
+        if (path != null) {
+            val file = File(path)
+            uri = Uri.fromFile(file)
+            fileName = file.name
+        }
+    }
+    return Pair(uri, fileName)
 }

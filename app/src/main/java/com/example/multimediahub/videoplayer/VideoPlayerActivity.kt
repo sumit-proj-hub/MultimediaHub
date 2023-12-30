@@ -3,7 +3,6 @@ package com.example.multimediahub.videoplayer
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
@@ -37,6 +36,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.MediaItem
@@ -45,8 +45,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.R
+import com.example.multimediahub.getUriAndNameFromIntent
 import com.example.multimediahub.screens.MessageText
-import java.io.File
 
 class VideoPlayerActivity : ComponentActivity() {
     private var isLandscape: Boolean? = null
@@ -56,22 +56,22 @@ class VideoPlayerActivity : ComponentActivity() {
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val path = intent.extras?.getString("path")
         isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        if (path != null) {
+        val (uri, fileName) = getUriAndNameFromIntent(this, intent)
+        if (uri != null) {
             player = ExoPlayer.Builder(this)
                 .setSeekForwardIncrementMs(10000L)
                 .setSeekBackIncrementMs(10000L)
                 .build()
             mediaSession = MediaSession.Builder(this@VideoPlayerActivity, player).build()
-            player.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(path))))
+            player.setMediaItem(MediaItem.fromUri(uri))
             player.prepare()
         }
         setContent {
-            if (path == null)
+            if (uri == null)
                 MessageText("Failed to load video.")
             else
-                Content(File(path).name)
+                Content(fileName ?: "Video")
         }
     }
 
@@ -193,9 +193,21 @@ class VideoPlayerActivity : ComponentActivity() {
     private fun setFullscreenIcon(playerView: PlayerView) {
         val btn = playerView.rootView.findViewById<ImageButton>(R.id.exo_fullscreen)
         if (isLandscape == true) {
-            btn.setImageDrawable(resources.getDrawable(R.drawable.exo_ic_fullscreen_exit, theme))
+            btn.setImageDrawable(
+                ResourcesCompat.getDrawable(
+                    resources,
+                    R.drawable.exo_ic_fullscreen_exit,
+                    theme
+                )
+            )
         } else {
-            btn.setImageDrawable(resources.getDrawable(R.drawable.exo_ic_fullscreen_enter, theme))
+            btn.setImageDrawable(
+                ResourcesCompat.getDrawable(
+                    resources,
+                    R.drawable.exo_ic_fullscreen_enter,
+                    theme
+                )
+            )
         }
     }
 }

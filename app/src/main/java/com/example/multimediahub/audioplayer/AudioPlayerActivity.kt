@@ -51,26 +51,26 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
+import com.example.multimediahub.getUriAndNameFromIntent
 import com.example.multimediahub.screens.MessageText
-import java.io.File
 
 class AudioPlayerActivity : ComponentActivity() {
     private lateinit var player: ExoPlayer
     private lateinit var mediaSession: MediaSession
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val path = intent.extras?.getString("path")
-        if (path != null) {
+        val (uri, fileName) = getUriAndNameFromIntent(this, intent)
+        if (uri != null) {
             player = ExoPlayer.Builder(this).build()
-            player.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(path))))
+            player.setMediaItem(MediaItem.fromUri(uri))
             mediaSession = MediaSession.Builder(this@AudioPlayerActivity, player).build()
             player.prepare()
         }
         setContent {
-            if (path == null)
+            if (uri == null)
                 MessageText("Failed to load audio.")
             else
-                Content(path)
+                Content(uri, fileName ?: "Audio")
         }
     }
 
@@ -82,7 +82,7 @@ class AudioPlayerActivity : ComponentActivity() {
 
     @OptIn(UnstableApi::class)
     @Composable
-    private fun Content(path: String) {
+    private fun Content(uri: Uri, fileName: String) {
         var currentPosition by rememberSaveable { mutableStateOf(0L) }
         var audioLength by rememberSaveable { mutableStateOf(0L) }
         var isPlaying by rememberSaveable { mutableStateOf(true) }
@@ -147,7 +147,7 @@ class AudioPlayerActivity : ComponentActivity() {
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
-                        text = File(path).name,
+                        text = fileName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = Color.White,
@@ -155,7 +155,7 @@ class AudioPlayerActivity : ComponentActivity() {
                     )
                 }
                 AudioThumbnail(
-                    path = path,
+                    uri = uri,
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(1f)
@@ -258,9 +258,9 @@ class AudioPlayerActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun AudioThumbnail(path: String, modifier: Modifier = Modifier) {
+    private fun AudioThumbnail(uri: Uri, modifier: Modifier = Modifier) {
         val metadataRetriever = MediaMetadataRetriever()
-        metadataRetriever.setDataSource(path)
+        metadataRetriever.setDataSource(this, uri)
         val imageData = metadataRetriever.embeddedPicture
         if (imageData != null) {
             Image(

@@ -1,6 +1,5 @@
 package com.example.multimediahub.pdfviewer
 
-import android.net.Uri
 import android.os.Bundle
 import android.text.InputFilter
 import android.text.InputType
@@ -12,9 +11,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.multimediahub.R
+import com.example.multimediahub.getUriAndNameFromIntent
 import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
-import java.io.File
 
 
 class PDFViewerActivity : AppCompatActivity() {
@@ -24,17 +23,16 @@ class PDFViewerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_pdfviewer)
-        val path = intent.extras?.getString("path")
-        if (path == null) {
+        val (uri, fileName) = getUriAndNameFromIntent(this, intent)
+        if (uri == null) {
             Toast.makeText(this, "Failed to load PDF", Toast.LENGTH_LONG).show()
             finish()
             return
         }
-        val pdfFile = File(path)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = pdfFile.name
+        supportActionBar?.title = fileName
         pdfView = findViewById(R.id.pdfView)
-        pdfView.fromUri(Uri.fromFile(pdfFile))
+        pdfView.fromUri(uri)
             .spacing(8)
             .scrollHandle(DefaultScrollHandle(this))
             .load()
