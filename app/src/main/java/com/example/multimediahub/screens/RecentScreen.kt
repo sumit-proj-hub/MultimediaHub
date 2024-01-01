@@ -1,6 +1,7 @@
 package com.example.multimediahub.screens
 
 import android.content.Context
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,7 +35,11 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 
 @Composable
-fun RecentScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
+fun RecentScreen(
+    displayInfo: FilesDisplayInfo,
+    scrollDirectionListener: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
     if (!checkStoragePermissionAndShowMessage())
         return
     var fileList by remember { mutableStateOf(listOf<MediaInfo>()) }
@@ -75,7 +80,8 @@ fun RecentScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
             gridState = rememberLazyGridState(),
             onClick = { onMediaClick(context, it.mediaType!!, it.filePath) },
             list = fileList,
-            modifier = modifier
+            scrollDirectionListener = scrollDirectionListener,
+            modifier = modifier.animateContentSize(),
         )
     }
 }

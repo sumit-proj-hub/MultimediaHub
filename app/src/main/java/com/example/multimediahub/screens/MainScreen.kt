@@ -2,6 +2,11 @@ package com.example.multimediahub.screens
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -96,7 +101,8 @@ private fun BottomNavGraph(
     displayInfo: FilesDisplayInfo,
     navController: NavHostController,
     paddingValues: PaddingValues,
-    onBackHandler: () -> Boolean
+    onBackHandler: () -> Boolean,
+    scrollDirectionListener: (Boolean) -> Unit
 ) {
     NavHost(
         navController = navController,
@@ -113,15 +119,15 @@ private fun BottomNavGraph(
         }
         composable(BottomNavItem.Recent.route) {
             BackHandler { backHandler() }
-            RecentScreen(displayInfo, modifier = modifier)
+            RecentScreen(displayInfo, scrollDirectionListener, modifier = modifier)
         }
         composable(BottomNavItem.Files.route) {
             BackHandler { backHandler() }
-            FilesScreen(displayInfo, modifier = modifier)
+            FilesScreen(displayInfo, scrollDirectionListener, modifier = modifier)
         }
         composable(BottomNavItem.Folders.route) {
             BackHandler { backHandler() }
-            FoldersScreen(displayInfo, modifier = modifier)
+            FoldersScreen(displayInfo, scrollDirectionListener, modifier = modifier)
         }
     }
 }
@@ -153,6 +159,7 @@ fun MainScreen() {
     var viewBy by rememberSaveable { mutableStateOf(ViewBy.Default) }
     var isSearchBarActive by rememberSaveable { mutableStateOf(false) }
     var allowSort by rememberSaveable { mutableStateOf(false) }
+    var isScrollingDown by remember { mutableStateOf(false) }
     val displayInfo = FilesDisplayInfo(selectedMediaType, sortBy, viewBy)
     LaunchedEffect(Unit) {
         navController.addOnDestinationChangedListener { controller, _, _ ->
@@ -180,15 +187,35 @@ fun MainScreen() {
                     }
                 )
             },
-            bottomBar = { if (!isSearchBarActive) BottomNavigationBar(navController = navController) },
-        ) {
-            BottomNavGraph(displayInfo, navController = navController, paddingValues = it) {
-                if (isSearchBarActive) {
-                    isSearchBarActive = false
-                    return@BottomNavGraph false
+            bottomBar = {
+                AnimatedVisibility(
+                    visible = !isSearchBarActive && !isScrollingDown,
+                    enter = slideInVertically(
+                        animationSpec = tween(durationMillis = 200),
+                        initialOffsetY = { it / 2 }),
+                    exit = slideOutVertically(
+                        animationSpec = tween(durationMillis = 200),
+                        targetOffsetY = { it / 2 })
+                ) {
+                    BottomNavigationBar(navController = navController)
                 }
-                return@BottomNavGraph true
-            }
+            },
+        ) { paddingValues ->
+            BottomNavGraph(
+                displayInfo,
+                navController = navController,
+                paddingValues = paddingValues,
+                onBackHandler = {
+                    if (isSearchBarActive) {
+                        isSearchBarActive = false
+                        return@BottomNavGraph false
+                    }
+                    return@BottomNavGraph true
+                },
+                scrollDirectionListener = {
+                    isScrollingDown = it
+                }
+            )
         }
     }
 }
@@ -395,7 +422,7 @@ private fun Head(
     isSearchBarActive: Boolean,
     setSearchBarActive: (Boolean) -> Unit
 ) {
-    Column {
+    Column(modifier = Modifier.animateContentSize()) {
         FileSearch(isSearchBarActive, setSearchBarActive)
         MediaTypeSelector(displayInfo.selectedMediaType, onMediaTypeClick)
         SortAndView(

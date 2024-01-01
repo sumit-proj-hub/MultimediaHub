@@ -1,5 +1,6 @@
 package com.example.multimediahub.screens
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -16,7 +17,11 @@ import com.example.multimediahub.SelectedMediaType
 import com.example.multimediahub.SortBy
 
 @Composable
-fun FilesScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
+fun FilesScreen(
+    displayInfo: FilesDisplayInfo,
+    scrollDirectionListener: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
     if (!checkStoragePermissionAndShowMessage())
         return
     var fileList by remember { mutableStateOf(listOf<MediaInfo>()) }
@@ -46,6 +51,7 @@ fun FilesScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
         gridState = rememberLazyGridState(),
         onClick = { onMediaClick(context, it.mediaType!!, it.filePath) },
         list = fileList,
-        modifier = modifier
+        scrollDirectionListener = scrollDirectionListener,
+        modifier = modifier.animateContentSize()
     )
 }

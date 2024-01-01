@@ -32,7 +32,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -167,6 +171,7 @@ fun ShowAllMedia(
     gridState: LazyGridState,
     onClick: (MediaInfo) -> Unit,
     list: List<MediaInfo>,
+    scrollDirectionListener: (Boolean) -> Unit = {},
     modifier: Modifier
 ) {
     when (viewBy) {
@@ -179,6 +184,7 @@ fun ShowAllMedia(
                     MediaListItem(it, Modifier.clickable { onClick(it) })
                 }
             }
+            scrollDirectionListener(!listState.isScrollingUp())
         }
 
         ViewBy.Grid -> {
@@ -191,6 +197,7 @@ fun ShowAllMedia(
                     MediaGridItem(it, Modifier.clickable { onClick(it) })
                 }
             }
+            scrollDirectionListener(!gridState.isScrollingUp())
         }
     }
 }
@@ -247,7 +254,7 @@ fun Modifier.simpleVerticalScrollbar(
 }
 
 @Composable
-fun Modifier.simpleVerticalScrollbar(
+private fun Modifier.simpleVerticalScrollbar(
     state: LazyGridState, width: Dp = 4.dp
 ): Modifier {
     val targetAlpha = if (state.isScrollInProgress) 1f else 0f
@@ -277,6 +284,46 @@ fun Modifier.simpleVerticalScrollbar(
             )
         }
     }
+}
+
+@Composable
+private fun LazyListState.isScrollingUp(): Boolean {
+    var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
+    var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+    return remember(this) {
+        derivedStateOf {
+            if (previousIndex != firstVisibleItemIndex) {
+                previousIndex > firstVisibleItemIndex
+            } else {
+                previousScrollOffset >= firstVisibleItemScrollOffset
+            }.also {
+                if (!isScrollInProgress) {
+                    previousIndex = firstVisibleItemIndex
+                    previousScrollOffset = firstVisibleItemScrollOffset
+                }
+            }
+        }
+    }.value
+}
+
+@Composable
+private fun LazyGridState.isScrollingUp(): Boolean {
+    var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
+    var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+    return remember(this) {
+        derivedStateOf {
+            if (previousIndex != firstVisibleItemIndex) {
+                previousIndex > firstVisibleItemIndex
+            } else {
+                previousScrollOffset >= firstVisibleItemScrollOffset
+            }.also {
+                if (!isScrollInProgress) {
+                    previousIndex = firstVisibleItemIndex
+                    previousScrollOffset = firstVisibleItemScrollOffset
+                }
+            }
+        }
+    }.value
 }
 
 private fun addToRecent(context: Context, mediaType: MediaType, filePath: String) {

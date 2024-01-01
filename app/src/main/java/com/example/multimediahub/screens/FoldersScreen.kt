@@ -1,5 +1,6 @@
 package com.example.multimediahub.screens
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,7 +27,11 @@ import com.example.multimediahub.SelectedMediaType
 import com.example.multimediahub.SortBy
 
 @Composable
-fun FoldersScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) {
+fun FoldersScreen(
+    displayInfo: FilesDisplayInfo,
+    scrollDirectionListener: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
     if (!checkStoragePermissionAndShowMessage()) return
     var mediaType by remember { mutableStateOf<SelectedMediaType?>(null) }
     var sortBy by remember { mutableStateOf<SortBy?>(null) }
@@ -58,7 +63,8 @@ fun FoldersScreen(displayInfo: FilesDisplayInfo, modifier: Modifier = Modifier) 
                 mediaType = null
             },
             list = folderList,
-            modifier = modifier
+            scrollDirectionListener = scrollDirectionListener,
+            modifier = modifier.animateContentSize()
         )
         return
     }

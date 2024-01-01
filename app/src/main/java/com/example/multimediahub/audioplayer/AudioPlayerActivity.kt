@@ -164,7 +164,10 @@ class AudioPlayerActivity : ComponentActivity() {
                     currentPosition,
                     audioLength,
                     isPlaying,
-                    setPosition = { player.seekTo(it) },
+                    setPosition = {
+                        currentPosition = it
+                        player.seekTo(it)
+                    },
                     setPlayState = { if (it) player.play() else player.pause() }
                 )
             }
@@ -183,16 +186,14 @@ class AudioPlayerActivity : ComponentActivity() {
         var lastPosition by remember { mutableStateOf<Long?>(null) }
         Column(modifier = modifier.padding(8.dp)) {
             Slider(
-                value = if (lastPosition == null) {
-                    if (audioLength == 0L) 0f else currentPosition.toFloat() / audioLength
-                } else {
-                    lastPosition!!.toFloat() / audioLength
-                },
+                value = if (audioLength == 0L) 0f else currentPosition.toFloat() / audioLength,
                 onValueChange = {
                     if (lastPosition == null) {
                         lastPosition = (it * audioLength).toLong()
                         setPosition(lastPosition!!)
                         lastPosition = null
+                    } else {
+                        setPosition((it * audioLength).toLong())
                     }
                 })
             Row(
