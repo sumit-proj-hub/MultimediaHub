@@ -1,5 +1,6 @@
 package com.example.multimediahub.audioplayer
 
+import android.net.Uri
 import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -15,6 +16,8 @@ object AudioProperties {
     lateinit var sessionToken: SessionToken
     lateinit var mediaController: ListenableFuture<MediaController>
     var currentlyPlayingFile: File? by mutableStateOf(null)
+    var audioUri: Uri? = null
+    var audioName: String? = null
     var currentPosition by mutableLongStateOf(0L)
     var audioLength by mutableLongStateOf(0L)
     var isPlaying by mutableStateOf(false)

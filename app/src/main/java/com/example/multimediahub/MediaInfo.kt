@@ -267,6 +267,8 @@ fun setupAudioFromIntent(context: Context, intent: Intent): Pair<String?, MediaC
     if (intent.action == Intent.ACTION_VIEW) {
         val uri = intent.data ?: throw Exception("Audio Not Found")
         audioName = getFileNameFromUri(context, uri)
+        AudioProperties.audioUri = uri
+        AudioProperties.audioName = audioName
         mediaController.setMediaItem(MediaItem.fromUri(uri))
         mediaController.seekTo(0L)
         mediaController.play()

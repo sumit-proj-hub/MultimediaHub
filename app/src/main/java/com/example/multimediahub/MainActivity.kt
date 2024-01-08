@@ -37,16 +37,20 @@ class MainActivity : ComponentActivity() {
                 MainScreen()
             }
         }
-        AudioProperties.sessionToken =
-            SessionToken(this, ComponentName(this, AudioPlayerService::class.java))
-        AudioProperties.mediaController =
-            MediaController.Builder(this, AudioProperties.sessionToken).buildAsync()
+        if (isPermissionGranted) {
+            AudioProperties.sessionToken =
+                SessionToken(this, ComponentName(this, AudioPlayerService::class.java))
+            AudioProperties.mediaController =
+                MediaController.Builder(this, AudioProperties.sessionToken).buildAsync()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        AudioProperties.mediaController.get().release()
-        exitProcess(0)
+        if (isPermissionGranted) {
+            AudioProperties.mediaController.get().release()
+            exitProcess(0)
+        }
     }
 
     override fun onResume() {

@@ -1,5 +1,6 @@
 package com.example.multimediahub.audioplayer
 
+import android.app.PendingIntent
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
@@ -17,7 +18,17 @@ class AudioPlayerService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this).build()
-        mediaSession = MediaSession.Builder(this, player).build()
+        mediaSession = MediaSession
+            .Builder(this, player)
+            .setSessionActivity(
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, AudioPlayerActivity::class.java),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
+            .build()
         playerListener = object : Player.Listener {
             private val handler = Handler(Looper.getMainLooper())
             override fun onPlaybackStateChanged(playbackState: Int) {

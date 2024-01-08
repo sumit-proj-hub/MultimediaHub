@@ -56,7 +56,7 @@ class AudioPlayerActivity : ComponentActivity() {
             try {
                 val (fileName, mediaController) = setupAudioFromIntent(this, intent)
                 setContent {
-                    Content(mediaController, fileName ?: "Audio")
+                    Content(mediaController, fileName ?: AudioProperties.audioName ?: "Audio")
                 }
             } catch (_: Exception) {
                 setContent {
@@ -212,9 +212,16 @@ class AudioPlayerActivity : ComponentActivity() {
     private fun AudioThumbnail(modifier: Modifier = Modifier) {
         val metadataRetriever = MediaMetadataRetriever()
         val audioUri = if (intent.action == Intent.ACTION_VIEW) intent.data
-            else Uri.fromFile(AudioProperties.currentlyPlayingFile)
-        metadataRetriever.setDataSource(this, audioUri)
-        val imageData = metadataRetriever.embeddedPicture
+        else {
+            if (AudioProperties.currentlyPlayingFile != null)
+                Uri.fromFile(AudioProperties.currentlyPlayingFile)
+            else
+                AudioProperties.audioUri
+        }
+        val imageData: ByteArray? = if (audioUri != null) {
+            metadataRetriever.setDataSource(this, audioUri)
+            metadataRetriever.embeddedPicture
+        } else null
         if (imageData != null) {
             Image(
                 bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
