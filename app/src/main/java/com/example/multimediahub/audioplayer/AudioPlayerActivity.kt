@@ -1,7 +1,10 @@
 package com.example.multimediahub.audioplayer
 
 import android.content.ComponentName
+import android.content.Intent
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,13 +40,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.multimediahub.screens.MessageText
 import com.example.multimediahub.setupAudioFromIntent
 import com.google.common.util.concurrent.MoreExecutors
+import kotlin.system.exitProcess
 
 class AudioPlayerActivity : ComponentActivity() {
     private var shouldReleaseController: Boolean = false
@@ -64,12 +67,12 @@ class AudioPlayerActivity : ComponentActivity() {
     }
 
     private fun checkoutAudioSession(next: () -> Unit) {
-        if (AudioProperties.sessionToken == null) {
+        if (intent.action == Intent.ACTION_VIEW) {
             shouldReleaseController = true
             AudioProperties.sessionToken =
                 SessionToken(this, ComponentName(this, AudioPlayerService::class.java))
             AudioProperties.mediaController = MediaController
-                .Builder(this, AudioProperties.sessionToken!!)
+                .Builder(this, AudioProperties.sessionToken)
                 .buildAsync()
             AudioProperties.mediaController.addListener({ next() }, MoreExecutors.directExecutor())
         } else next()
@@ -78,8 +81,8 @@ class AudioPlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         if (shouldReleaseController) {
-            MediaController.releaseFuture(AudioProperties.mediaController)
-            AudioProperties.sessionToken = null
+            AudioProperties.mediaController.get().release()
+            exitProcess(0)
         }
     }
 
@@ -115,7 +118,6 @@ class AudioPlayerActivity : ComponentActivity() {
                     )
                 }
                 AudioThumbnail(
-                    mediaMetadata = mediaController.mediaMetadata,
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(1f)
@@ -207,8 +209,12 @@ class AudioPlayerActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun AudioThumbnail(mediaMetadata: MediaMetadata?, modifier: Modifier = Modifier) {
-        val imageData = mediaMetadata?.artworkData
+    private fun AudioThumbnail(modifier: Modifier = Modifier) {
+        val metadataRetriever = MediaMetadataRetriever()
+        val audioUri = if (intent.action == Intent.ACTION_VIEW) intent.data
+            else Uri.fromFile(AudioProperties.currentlyPlayingFile)
+        metadataRetriever.setDataSource(this, audioUri)
+        val imageData = metadataRetriever.embeddedPicture
         if (imageData != null) {
             Image(
                 bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)

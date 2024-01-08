@@ -12,7 +12,7 @@ import java.io.File
 import java.nio.file.Files
 
 object AudioProperties {
-    var sessionToken: SessionToken? = null
+    lateinit var sessionToken: SessionToken
     lateinit var mediaController: ListenableFuture<MediaController>
     var currentlyPlayingFile: File? by mutableStateOf(null)
     var currentPosition by mutableLongStateOf(0L)

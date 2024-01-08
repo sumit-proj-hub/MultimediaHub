@@ -20,6 +20,7 @@ import com.example.multimediahub.audioplayer.AudioPlayerService
 import com.example.multimediahub.audioplayer.AudioProperties
 import com.example.multimediahub.screens.MainScreen
 import com.example.multimediahub.ui.theme.MultimediaHubTheme
+import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity() {
     private var isPermissionGranted: Boolean = false
@@ -36,18 +37,16 @@ class MainActivity : ComponentActivity() {
                 MainScreen()
             }
         }
-        if (AudioProperties.sessionToken == null) {
-            AudioProperties.sessionToken =
-                SessionToken(this, ComponentName(this, AudioPlayerService::class.java))
-            AudioProperties.mediaController =
-                MediaController.Builder(this, AudioProperties.sessionToken!!).buildAsync()
-        }
+        AudioProperties.sessionToken =
+            SessionToken(this, ComponentName(this, AudioPlayerService::class.java))
+        AudioProperties.mediaController =
+            MediaController.Builder(this, AudioProperties.sessionToken).buildAsync()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        MediaController.releaseFuture(AudioProperties.mediaController)
-        AudioProperties.sessionToken = null
+        AudioProperties.mediaController.get().release()
+        exitProcess(0)
     }
 
     override fun onResume() {

@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
-import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Folder
@@ -263,9 +262,7 @@ fun getUriAndNameFromIntent(context: Context, intent: Intent): Pair<Uri?, String
 }
 
 fun setupAudioFromIntent(context: Context, intent: Intent): Pair<String?, MediaController> {
-    Log.d("MyAppTag", "Reach 1")
     val mediaController = AudioProperties.mediaController.get()
-    Log.d("MyAppTag", "Reach 2")
     val audioName: String?
     if (intent.action == Intent.ACTION_VIEW) {
         val uri = intent.data ?: throw Exception("Audio Not Found")
@@ -273,7 +270,6 @@ fun setupAudioFromIntent(context: Context, intent: Intent): Pair<String?, MediaC
         mediaController.setMediaItem(MediaItem.fromUri(uri))
         mediaController.seekTo(0L)
         mediaController.play()
-        Log.d("MyAppTag", "Reach 3")
     } else {
         audioName = AudioProperties.currentlyPlayingFile?.name
     }
