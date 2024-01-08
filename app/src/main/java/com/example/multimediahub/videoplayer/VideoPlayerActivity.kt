@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +48,7 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.R
 import com.example.multimediahub.getUriAndNameFromIntent
 import com.example.multimediahub.screens.MessageText
+import java.util.UUID
 
 class VideoPlayerActivity : ComponentActivity() {
     private var isLandscape: Boolean? = null
@@ -63,7 +65,8 @@ class VideoPlayerActivity : ComponentActivity() {
                 .setSeekForwardIncrementMs(10000L)
                 .setSeekBackIncrementMs(10000L)
                 .build()
-            mediaSession = MediaSession.Builder(this@VideoPlayerActivity, player).build()
+            mediaSession = MediaSession.Builder(this@VideoPlayerActivity, player)
+                .setId(UUID.randomUUID().toString()).build()
             player.setMediaItem(MediaItem.fromUri(uri))
             player.prepare()
         }
@@ -125,9 +128,9 @@ class VideoPlayerActivity : ComponentActivity() {
     @Composable
     private fun VideoPlayer(
         controllerVisibilityListener: (Boolean) -> Unit,
-        modifier: Modifier = Modifier
+        modifier: Modifier = Modifier,
     ) {
-        var currentTime by rememberSaveable { mutableStateOf(0L) }
+        var currentTime by rememberSaveable { mutableLongStateOf(0L) }
         var shouldPlay by rememberSaveable { mutableStateOf(true) }
         var lifecycle by remember { mutableStateOf(Lifecycle.Event.ON_CREATE) }
         val lifecycleOwner = LocalLifecycleOwner.current

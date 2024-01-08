@@ -18,8 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
+import androidx.media3.common.MediaItem
+import androidx.media3.session.MediaController
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import com.example.multimediahub.audioplayer.AudioProperties
 import java.io.File
 
 
@@ -30,7 +33,7 @@ class MediaInfo(
     val mediaType: MediaType?,
     var lastModified: Long,
     var size: Long,
-    val filePath: String
+    val filePath: String,
 ) {
     @Composable
     @OptIn(ExperimentalGlideComposeApi::class)
@@ -80,7 +83,7 @@ class MediaInfo(
             contentResolver: ContentResolver,
             selectedMediaType: SelectedMediaType,
             sortBy: SortBy,
-            folderPath: String? = null
+            folderPath: String? = null,
         ): List<MediaInfo> {
             val mediaList = mutableListOf<MediaInfo>()
             val selection = if (folderPath == null) {
@@ -128,7 +131,7 @@ class MediaInfo(
         fun getMediaFolders(
             selectedMediaType: SelectedMediaType,
             sortBy: SortBy,
-            contentResolver: ContentResolver
+            contentResolver: ContentResolver,
         ): List<MediaInfo> {
             val folderMap = mutableMapOf<String, MediaInfo>()
             contentResolver.query(
@@ -173,7 +176,7 @@ class MediaInfo(
 class ReducedMediaInfo(
     val name: String,
     val mediaType: MediaType,
-    val filePath: String
+    val filePath: String,
 ) {
     @Composable
     fun MediaIcon(modifier: Modifier = Modifier) {
@@ -256,4 +259,21 @@ fun getUriAndNameFromIntent(context: Context, intent: Intent): Pair<Uri?, String
         }
     }
     return Pair(uri, fileName)
+}
+
+fun setupAudioFromIntent(context: Context, intent: Intent): Pair<String?, MediaController> {
+    val mediaController = AudioProperties.mediaController.get()
+    val audioName: String?
+    if (intent.action == Intent.ACTION_VIEW) {
+        val uri = intent.data ?: throw Exception("Audio Not Found")
+        audioName = getFileNameFromUri(context, uri)
+        AudioProperties.audioUri = uri
+        AudioProperties.audioName = audioName
+        mediaController.setMediaItem(MediaItem.fromUri(uri))
+        mediaController.seekTo(0L)
+        mediaController.play()
+    } else {
+        audioName = AudioProperties.currentlyPlayingFile?.name
+    }
+    return Pair(audioName, mediaController)
 }

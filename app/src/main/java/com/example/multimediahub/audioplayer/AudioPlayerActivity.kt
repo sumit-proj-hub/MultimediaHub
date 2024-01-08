@@ -1,11 +1,11 @@
 package com.example.multimediahub.audioplayer
 
+import android.content.ComponentName
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
@@ -34,98 +34,61 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.MediaSession
-import com.example.multimediahub.getUriAndNameFromIntent
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.example.multimediahub.screens.MessageText
+import com.example.multimediahub.setupAudioFromIntent
+import com.google.common.util.concurrent.MoreExecutors
+import kotlin.system.exitProcess
 
 class AudioPlayerActivity : ComponentActivity() {
-    private lateinit var player: ExoPlayer
-    private lateinit var mediaSession: MediaSession
+    private var shouldReleaseController: Boolean = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val (uri, fileName) = getUriAndNameFromIntent(this, intent)
-        if (uri != null) {
-            player = ExoPlayer.Builder(this).build()
-            player.setMediaItem(MediaItem.fromUri(uri))
-            mediaSession = MediaSession.Builder(this@AudioPlayerActivity, player).build()
-            player.prepare()
+        checkoutAudioSession {
+            try {
+                val (fileName, mediaController) = setupAudioFromIntent(this, intent)
+                setContent {
+                    Content(mediaController, fileName ?: AudioProperties.audioName ?: "Audio")
+                }
+            } catch (_: Exception) {
+                setContent {
+                    MessageText("Failed to load audio.")
+                }
+            }
         }
-        setContent {
-            if (uri == null)
-                MessageText("Failed to load audio.")
-            else
-                Content(uri, fileName ?: "Audio")
-        }
+    }
+
+    private fun checkoutAudioSession(next: () -> Unit) {
+        if (intent.action == Intent.ACTION_VIEW) {
+            shouldReleaseController = true
+            AudioProperties.sessionToken =
+                SessionToken(this, ComponentName(this, AudioPlayerService::class.java))
+            AudioProperties.mediaController = MediaController
+                .Builder(this, AudioProperties.sessionToken)
+                .buildAsync()
+            AudioProperties.mediaController.addListener({ next() }, MoreExecutors.directExecutor())
+        } else next()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (this::player.isInitialized) mediaSession.release()
-        if (this::player.isInitialized) player.release()
+        if (shouldReleaseController) {
+            AudioProperties.mediaController.get().release()
+            exitProcess(0)
+        }
     }
 
     @OptIn(UnstableApi::class)
     @Composable
-    private fun Content(uri: Uri, fileName: String) {
-        var currentPosition by rememberSaveable { mutableStateOf(0L) }
-        var audioLength by rememberSaveable { mutableStateOf(0L) }
-        var isPlaying by rememberSaveable { mutableStateOf(true) }
-
-        DisposableEffect(Unit) {
-            val listener = object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == ExoPlayer.STATE_READY)
-                        audioLength = player.duration
-                    else if (playbackState == ExoPlayer.STATE_ENDED) {
-                        player.seekTo(0L)
-                        player.pause()
-                        isPlaying = false
-                    }
-                }
-
-                override fun onIsPlayingChanged(playState: Boolean) {
-                    isPlaying = playState
-                }
-            }
-            player.addListener(listener)
-            player.seekTo(currentPosition)
-            if (isPlaying) player.play()
-            onDispose {
-                player.removeListener(listener)
-            }
-        }
-
-        DisposableEffect(isPlaying) {
-            var handler: Handler? = Handler(Looper.getMainLooper())
-            val runnable = object : Runnable {
-                override fun run() {
-                    currentPosition = player.currentPosition
-                    handler?.postDelayed(this, 200)
-                }
-            }
-            if (isPlaying)
-                handler?.postDelayed(runnable, 0)
-            onDispose {
-                handler = null
-            }
-        }
-
+    private fun Content(mediaController: MediaController, fileName: String) {
         Surface(color = Color.Black) {
             Column(
                 verticalArrangement = Arrangement.SpaceBetween,
@@ -155,58 +118,39 @@ class AudioPlayerActivity : ComponentActivity() {
                     )
                 }
                 AudioThumbnail(
-                    uri = uri,
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(1f)
                 )
-                AudioController(
-                    currentPosition,
-                    audioLength,
-                    isPlaying,
-                    setPosition = {
-                        currentPosition = it
-                        player.seekTo(it)
-                    },
-                    setPlayState = { if (it) player.play() else player.pause() }
-                )
+                AudioController(mediaController)
             }
         }
     }
 
     @Composable
-    private fun AudioController(
-        currentPosition: Long,
-        audioLength: Long,
-        isPlaying: Boolean,
-        setPosition: (Long) -> Unit,
-        setPlayState: (Boolean) -> Unit,
-        modifier: Modifier = Modifier
-    ) {
-        var lastPosition by remember { mutableStateOf<Long?>(null) }
+    private fun AudioController(mediaController: MediaController, modifier: Modifier = Modifier) {
         Column(modifier = modifier.padding(8.dp)) {
             Slider(
-                value = if (audioLength == 0L) 0f else currentPosition.toFloat() / audioLength,
+                value = if (AudioProperties.audioLength == 0L) {
+                    0f
+                } else {
+                    AudioProperties.currentPosition.toFloat() / AudioProperties.audioLength
+                },
                 onValueChange = {
-                    if (lastPosition == null) {
-                        lastPosition = (it * audioLength).toLong()
-                        setPosition(lastPosition!!)
-                        lastPosition = null
-                    } else {
-                        setPosition((it * audioLength).toLong())
-                    }
-                })
+                    mediaController.seekTo((it * AudioProperties.audioLength).toLong())
+                }
+            )
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = millisecondsToTimeString(currentPosition),
+                    text = millisecondsToTimeString(AudioProperties.currentPosition),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = millisecondsToTimeString(audioLength),
+                    text = millisecondsToTimeString(AudioProperties.audioLength),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge
                 )
@@ -225,12 +169,12 @@ class AudioPlayerActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(40.dp)
                         .clickable {
-                            val newPosition = currentPosition - 10000L
-                            setPosition(if (newPosition >= 0L) newPosition else 0L)
+                            val newPosition = AudioProperties.currentPosition - 10000L
+                            mediaController.seekTo(if (newPosition >= 0L) newPosition else 0L)
                         }
                 )
                 Icon(
-                    imageVector = if (isPlaying) {
+                    imageVector = if (AudioProperties.isPlaying) {
                         Icons.Default.PauseCircleFilled
                     } else {
                         Icons.Default.PlayCircleFilled
@@ -240,7 +184,10 @@ class AudioPlayerActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(64.dp)
                         .clickable {
-                            setPlayState(!isPlaying)
+                            if (mediaController.isPlaying)
+                                mediaController.pause()
+                            else
+                                mediaController.play()
                         }
                 )
                 Icon(
@@ -250,8 +197,11 @@ class AudioPlayerActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(40.dp)
                         .clickable {
-                            val newPosition = currentPosition + 10000L
-                            setPosition(if (newPosition <= audioLength) newPosition else audioLength)
+                            val newPosition = AudioProperties.currentPosition + 10000L
+                            mediaController.seekTo(
+                                if (newPosition <= AudioProperties.audioLength) newPosition
+                                else AudioProperties.audioLength
+                            )
                         }
                 )
             }
@@ -259,10 +209,19 @@ class AudioPlayerActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun AudioThumbnail(uri: Uri, modifier: Modifier = Modifier) {
+    private fun AudioThumbnail(modifier: Modifier = Modifier) {
         val metadataRetriever = MediaMetadataRetriever()
-        metadataRetriever.setDataSource(this, uri)
-        val imageData = metadataRetriever.embeddedPicture
+        val audioUri = if (intent.action == Intent.ACTION_VIEW) intent.data
+        else {
+            if (AudioProperties.currentlyPlayingFile != null)
+                Uri.fromFile(AudioProperties.currentlyPlayingFile)
+            else
+                AudioProperties.audioUri
+        }
+        val imageData: ByteArray? = if (audioUri != null) {
+            metadataRetriever.setDataSource(this, audioUri)
+            metadataRetriever.embeddedPicture
+        } else null
         if (imageData != null) {
             Image(
                 bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
