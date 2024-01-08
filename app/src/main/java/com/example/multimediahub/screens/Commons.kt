@@ -4,21 +4,27 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,17 +34,24 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -49,10 +62,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.MediaItem
 import com.example.multimediahub.MediaInfo
 import com.example.multimediahub.MediaType
 import com.example.multimediahub.ViewBy
 import com.example.multimediahub.audioplayer.AudioPlayerActivity
+import com.example.multimediahub.audioplayer.AudioProperties
 import com.example.multimediahub.imageviewer.ImageViewerActivity
 import com.example.multimediahub.pdfviewer.PDFViewerActivity
 import com.example.multimediahub.videoplayer.VideoPlayerActivity
@@ -92,17 +107,68 @@ fun MessageText(msg: String) {
 
 @Composable
 fun MediaGridItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
+    val showAudioControls =
+        mediaInfo.mediaType == MediaType.Audio && AudioProperties.compareAudioFile(File(mediaInfo.filePath))
+    val modifierClickable = if (showAudioControls) {
+        val context = LocalContext.current
+        modifier.clickable { showAudioPlayer(context) }
+    } else modifier
     Surface(
-        modifier = modifier.padding(6.dp),
+        modifier = modifierClickable.padding(6.dp),
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainer
+        border = if (showAudioControls)
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else null,
+        color = if (showAudioControls)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        else
+            MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column {
-            mediaInfo.MediaIcon(
-                Modifier
-                    .height(100.dp)
-                    .fillMaxWidth()
-            )
+            Box {
+                mediaInfo.MediaIcon(
+                    Modifier
+                        .height(100.dp)
+                        .fillMaxWidth()
+                        .alpha(if (showAudioControls) 0.4f else 1.0f)
+                )
+                if (showAudioControls) {
+                    val player = AudioProperties.mediaController.get()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .height(100.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Spacer(modifier = Modifier)
+                        Icon(
+                            imageVector = if (AudioProperties.isPlaying)
+                                Icons.Default.Pause
+                            else
+                                Icons.Default.PlayArrow,
+                            contentDescription = "Pause/Play",
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clickable {
+                                    if (AudioProperties.isPlaying)
+                                        player.pause()
+                                    else
+                                        player.play()
+                                }
+                        )
+                        LinearProgressIndicator(
+                            progress = {
+                                if (AudioProperties.audioLength == 0L) {
+                                    0f
+                                } else {
+                                    AudioProperties.currentPosition.toFloat() / AudioProperties.audioLength
+                                }
+                            }
+                        )
+                    }
+                }
+            }
             Text(
                 text = mediaInfo.name,
                 textAlign = TextAlign.Center,
@@ -119,12 +185,25 @@ fun MediaGridItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
 
 @Composable
 fun MediaListItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
+    val showAudioControls =
+        mediaInfo.mediaType == MediaType.Audio && AudioProperties.compareAudioFile(File(mediaInfo.filePath))
+    val modifierClickable = if (showAudioControls) {
+        val context = LocalContext.current
+        modifier.clickable { showAudioPlayer(context) }
+    } else modifier
     Surface(
-        modifier = modifier
+        modifier = modifierClickable
             .fillMaxWidth()
-            .padding(4.dp),
+            .padding(4.dp)
+            .animateContentSize(),
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainer
+        border = if (showAudioControls)
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else null,
+        color = if (showAudioControls)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        else
+            MaterialTheme.colorScheme.surfaceContainer
     ) {
         Row(
             modifier = Modifier
@@ -144,6 +223,37 @@ fun MediaListItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = mediaInfo.name, style = MaterialTheme.typography.bodyLarge)
+                if (showAudioControls) {
+                    val player = AudioProperties.mediaController.get()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Slider(
+                            value = if (AudioProperties.audioLength == 0L) {
+                                0f
+                            } else {
+                                AudioProperties.currentPosition.toFloat() / AudioProperties.audioLength
+                            },
+                            onValueChange = {
+                                player.seekTo((it * AudioProperties.audioLength).toLong())
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = if (AudioProperties.isPlaying)
+                                Icons.Default.Pause
+                            else
+                                Icons.Default.PlayArrow,
+                            contentDescription = "Pause/Play",
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable {
+                                    if (AudioProperties.isPlaying)
+                                        player.pause()
+                                    else
+                                        player.play()
+                                }
+                        )
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -288,8 +398,8 @@ private fun Modifier.simpleVerticalScrollbar(
 
 @Composable
 private fun LazyListState.isScrollingUp(): Boolean {
-    var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
-    var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+    var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
+    var previousScrollOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
     return remember(this) {
         derivedStateOf {
             if (previousIndex != firstVisibleItemIndex) {
@@ -308,8 +418,8 @@ private fun LazyListState.isScrollingUp(): Boolean {
 
 @Composable
 private fun LazyGridState.isScrollingUp(): Boolean {
-    var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
-    var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+    var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
+    var previousScrollOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
     return remember(this) {
         derivedStateOf {
             if (previousIndex != firstVisibleItemIndex) {
@@ -343,11 +453,29 @@ private fun addToRecent(context: Context, mediaType: MediaType, filePath: String
     }
 }
 
-fun onMediaClick(context: Context, mediaType: MediaType, filePath: String) {
+fun showAudioPlayer(context: Context) {
+    val intent = Intent(context, AudioPlayerActivity::class.java)
+    context.startActivity(intent)
+}
+
+fun onMediaClick(
+    context: Context,
+    mediaType: MediaType,
+    filePath: String
+) {
     addToRecent(context, mediaType, filePath)
     val intent = when (mediaType) {
         MediaType.Image -> Intent(context, ImageViewerActivity::class.java)
-        MediaType.Audio -> Intent(context, AudioPlayerActivity::class.java)
+        MediaType.Audio -> {
+            val mediaController = AudioProperties.mediaController.get()
+            val audioFile = File(filePath)
+            AudioProperties.currentlyPlayingFile = audioFile
+            mediaController.setMediaItem(MediaItem.fromUri(Uri.fromFile(audioFile)))
+            mediaController.seekTo(0L)
+            mediaController.play()
+            return
+        }
+
         MediaType.Video -> Intent(context, VideoPlayerActivity::class.java)
         MediaType.PDF -> Intent(context, PDFViewerActivity::class.java)
     }

@@ -113,7 +113,7 @@ private fun BottomNavGraph(
         val backHandler = {
             if (onBackHandler()) {
                 navController.popBackStack()
-                if (navController.currentBackStack.value.isEmpty())
+                if (navController.currentBackStackEntry == null)
                     (navController.context as Activity).finish()
             }
         }
@@ -273,7 +273,10 @@ private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean)
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(3.dp)
-                        .clickable { onMediaClick(context, it.mediaType, it.filePath) },
+                        .clickable {
+                            onMediaClick(context, it.mediaType, it.filePath)
+                            showAudioPlayer(context)
+                        },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     it.MediaIcon(
