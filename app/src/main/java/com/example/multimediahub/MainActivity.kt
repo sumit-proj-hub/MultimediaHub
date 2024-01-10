@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isPermissionGranted) {
+        if (isFinishing && isPermissionGranted) {
             AudioProperties.mediaController.get().release()
             exitProcess(0)
         }

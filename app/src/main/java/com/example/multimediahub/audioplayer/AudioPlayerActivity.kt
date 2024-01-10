@@ -80,7 +80,7 @@ class AudioPlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (shouldReleaseController) {
+        if (isFinishing && shouldReleaseController) {
             AudioProperties.mediaController.get().release()
             exitProcess(0)
         }
