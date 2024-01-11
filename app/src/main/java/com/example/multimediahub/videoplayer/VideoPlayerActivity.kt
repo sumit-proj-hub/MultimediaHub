@@ -28,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -128,10 +127,10 @@ class VideoPlayerActivity : ComponentActivity() {
     @Composable
     private fun VideoPlayer(
         controllerVisibilityListener: (Boolean) -> Unit,
-        modifier: Modifier = Modifier,
+        modifier: Modifier = Modifier
     ) {
-        var currentTime by rememberSaveable { mutableLongStateOf(0L) }
-        var shouldPlay by rememberSaveable { mutableStateOf(true) }
+        var currentTime by remember { mutableLongStateOf(0L) }
+        var shouldPlay by remember { mutableStateOf(true) }
         var lifecycle by remember { mutableStateOf(Lifecycle.Event.ON_CREATE) }
         val lifecycleOwner = LocalLifecycleOwner.current
 

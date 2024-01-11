@@ -34,6 +34,7 @@
 
         <activity
             android:name=".pdfviewer.PDFViewerActivity"
+            android:configChanges="screenLayout|orientation|screenSize"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar">
             <intent-filter tools:ignore="AppLinkUrlError">
@@ -46,6 +47,7 @@
         </activity>
         <activity
             android:name=".audioplayer.AudioPlayerActivity"
+            android:configChanges="screenLayout|orientation|screenSize"
             android:exported="true"
             android:label="@string/title_activity_audio_player"
             android:theme="@style/Theme.MultimediaHub">
@@ -86,6 +88,7 @@
         </activity>
         <activity
             android:name=".MainActivity"
+            android:configChanges="screenLayout|orientation|screenSize"
             android:exported="true"
             android:theme="@style/Theme.MultimediaHub"
             android:windowSoftInputMode="adjustResize">

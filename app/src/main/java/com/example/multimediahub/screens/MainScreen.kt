@@ -48,7 +48,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -154,11 +153,11 @@ private fun BottomNavigationBar(navController: NavHostController) {
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    var selectedMediaType by rememberSaveable { mutableStateOf(SelectedMediaType.Default) }
-    var sortBy by rememberSaveable { mutableStateOf(SortBy.Default) }
-    var viewBy by rememberSaveable { mutableStateOf(ViewBy.Default) }
-    var isSearchBarActive by rememberSaveable { mutableStateOf(false) }
-    var allowSort by rememberSaveable { mutableStateOf(false) }
+    var selectedMediaType by remember { mutableStateOf(SelectedMediaType.Default) }
+    var sortBy by remember { mutableStateOf(SortBy.Default) }
+    var viewBy by remember { mutableStateOf(ViewBy.Default) }
+    var isSearchBarActive by remember { mutableStateOf(false) }
+    var allowSort by remember { mutableStateOf(false) }
     var isScrollingDown by remember { mutableStateOf(false) }
     val displayInfo = FilesDisplayInfo(selectedMediaType, sortBy, viewBy)
     LaunchedEffect(Unit) {
