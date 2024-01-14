@@ -11,6 +11,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,11 +48,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -65,12 +68,15 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.MediaItem
 import com.example.multimediahub.MediaInfo
 import com.example.multimediahub.MediaType
+import com.example.multimediahub.SortBy
 import com.example.multimediahub.ViewBy
 import com.example.multimediahub.audioplayer.AudioPlayerActivity
 import com.example.multimediahub.audioplayer.AudioProperties
 import com.example.multimediahub.imageviewer.ImageViewerActivity
 import com.example.multimediahub.pdfviewer.PDFViewerActivity
 import com.example.multimediahub.videoplayer.VideoPlayerActivity
+import my.nanihadesuka.compose.LazyColumnScrollbar
+import my.nanihadesuka.compose.LazyGridVerticalScrollbar
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -275,46 +281,101 @@ fun MediaListItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun IndicatorContent(indicatorString: String, isThumbSelected: Boolean) {
+    if (!isThumbSelected)
+        return
+    Row {
+        Text(
+            text = indicatorString,
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .padding(4.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+    }
+}
+
+@Composable
 fun ShowAllMedia(
     viewBy: ViewBy,
+    sortBy: SortBy,
     listState: LazyListState,
     gridState: LazyGridState,
     onClick: (MediaInfo) -> Unit,
     list: List<MediaInfo>,
     scrollDirectionListener: (Boolean) -> Unit = {},
-    modifier: Modifier
+    modifier: Modifier,
 ) {
+    var isScrollThumbSelected by remember { mutableStateOf(false) }
+    val getIndicatorString = { index: Int ->
+        when (sortBy) {
+            SortBy.Name -> "  ${list[index].name[0].uppercase()}  "
+            SortBy.LastModified -> formatMilliseconds(list[index].lastModified, "dd-MMM-yyyy")
+            SortBy.Size -> formatFileSize(list[index].size)
+        }
+    }
     when (viewBy) {
         ViewBy.List -> {
-            LazyColumn(
-                modifier = modifier.simpleVerticalScrollbar(listState),
-                state = listState
+            LazyColumnScrollbar(
+                listState = listState,
+                thumbColor = MaterialTheme.colorScheme.primary,
+                thumbSelectedColor = MaterialTheme.colorScheme.secondary,
+                thickness = 8.dp,
+                hideDelayMillis = 1500,
+                indicatorContent = { index, isThumbSelected ->
+                    IndicatorContent(
+                        indicatorString = getIndicatorString(index),
+                        isThumbSelected = isThumbSelected
+                    )
+                    isScrollThumbSelected = isThumbSelected
+                }
             ) {
-                items(list) {
-                    MediaListItem(it, Modifier.clickable { onClick(it) })
+                LazyColumn(
+                    modifier = modifier,
+                    state = listState
+                ) {
+                    items(list) {
+                        MediaListItem(it, Modifier.clickable { onClick(it) })
+                    }
                 }
             }
-            scrollDirectionListener(!listState.isScrollingUp())
+            scrollDirectionListener(isScrollThumbSelected || !listState.isScrollingUp())
         }
 
         ViewBy.Grid -> {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(135.dp),
-                modifier = modifier.simpleVerticalScrollbar(gridState),
-                state = gridState
+            LazyGridVerticalScrollbar(
+                state = gridState,
+                thumbColor = MaterialTheme.colorScheme.primary,
+                thumbSelectedColor = MaterialTheme.colorScheme.secondary,
+                thickness = 8.dp,
+                hideDelayMillis = 1500,
+                indicatorContent = { index, isThumbSelected ->
+                    IndicatorContent(
+                        indicatorString = getIndicatorString(index),
+                        isThumbSelected = isThumbSelected
+                    )
+                    isScrollThumbSelected = isThumbSelected
+                }
             ) {
-                items(list) {
-                    MediaGridItem(it, Modifier.clickable { onClick(it) })
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(135.dp),
+                    modifier = modifier,
+                    state = gridState
+                ) {
+                    items(list) {
+                        MediaGridItem(it, Modifier.clickable { onClick(it) })
+                    }
                 }
             }
-            scrollDirectionListener(!gridState.isScrollingUp())
+            scrollDirectionListener(isScrollThumbSelected || !gridState.isScrollingUp())
         }
     }
 }
 
-private fun formatMilliseconds(milliseconds: Long): String {
+private fun formatMilliseconds(milliseconds: Long, pattern: String = "dd MMM yyyy, HH:mm"): String {
     val date = Date(milliseconds)
-    val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+    val formatter = SimpleDateFormat(pattern, Locale.getDefault())
     return formatter.format(date)
 }
 
@@ -332,40 +393,7 @@ private fun formatFileSize(size: Long): String {
 
 @Composable
 fun Modifier.simpleVerticalScrollbar(
-    state: LazyListState, width: Dp = 4.dp
-): Modifier {
-    val targetAlpha = if (state.isScrollInProgress) 1f else 0f
-    val duration = if (state.isScrollInProgress) 150 else 500
-
-    val alpha by animateFloatAsState(
-        targetValue = targetAlpha, animationSpec = tween(durationMillis = duration), label = ""
-    )
-
-    return drawWithContent {
-        drawContent()
-
-        val firstVisibleElementIndex = state.layoutInfo.visibleItemsInfo.firstOrNull()?.index
-        val needDrawScrollbar = state.isScrollInProgress || alpha > 0.0f
-
-        // Draw scrollbar if scrolling or if the animation is still running and lazy column has content
-        if (needDrawScrollbar && firstVisibleElementIndex != null) {
-            val elementHeight = this.size.height / state.layoutInfo.totalItemsCount
-            val scrollbarOffsetY = firstVisibleElementIndex * elementHeight
-            var scrollbarHeight = state.layoutInfo.visibleItemsInfo.size * elementHeight
-            if (scrollbarHeight < 10) scrollbarHeight = 10f
-            drawRect(
-                color = Color.Gray,
-                topLeft = Offset(this.size.width - width.toPx(), scrollbarOffsetY),
-                size = Size(width.toPx(), scrollbarHeight),
-                alpha = alpha
-            )
-        }
-    }
-}
-
-@Composable
-private fun Modifier.simpleVerticalScrollbar(
-    state: LazyGridState, width: Dp = 4.dp
+    state: LazyListState, width: Dp = 4.dp,
 ): Modifier {
     val targetAlpha = if (state.isScrollInProgress) 1f else 0f
     val duration = if (state.isScrollInProgress) 150 else 500
@@ -461,7 +489,7 @@ fun showAudioPlayer(context: Context) {
 fun onMediaClick(
     context: Context,
     mediaType: MediaType,
-    filePath: String
+    filePath: String,
 ) {
     addToRecent(context, mediaType, filePath)
     val intent = when (mediaType) {

@@ -76,6 +76,7 @@ fun RecentScreen(
         }
         ShowAllMedia(
             viewBy = displayInfo.viewBy,
+            sortBy = displayInfo.sortBy,
             listState = rememberLazyListState(),
             gridState = rememberLazyGridState(),
             onClick = { onMediaClick(context, it.mediaType!!, it.filePath) },

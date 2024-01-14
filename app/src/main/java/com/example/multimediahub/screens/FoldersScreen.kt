@@ -56,6 +56,7 @@ fun FoldersScreen(
         }
         ShowAllMedia(
             viewBy = displayInfo.viewBy,
+            sortBy = displayInfo.sortBy,
             listState = rememberLazyListState(),
             gridState = rememberLazyGridState(),
             onClick = {
@@ -99,6 +100,7 @@ fun FoldersScreen(
         }
         ShowAllMedia(
             viewBy = displayInfo.viewBy,
+            sortBy = displayInfo.sortBy,
             listState = rememberLazyListState(),
             gridState = rememberLazyGridState(),
             onClick = { onMediaClick(context, it.mediaType!!, it.filePath) },
