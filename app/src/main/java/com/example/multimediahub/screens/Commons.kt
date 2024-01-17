@@ -60,14 +60,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.MediaItem
+import com.example.multimediahub.FilesDisplayInfo
 import com.example.multimediahub.MediaInfo
 import com.example.multimediahub.MediaType
+import com.example.multimediahub.SelectedMediaType
 import com.example.multimediahub.SortBy
 import com.example.multimediahub.ViewBy
 import com.example.multimediahub.audioplayer.AudioPlayerActivity
@@ -136,7 +139,7 @@ fun MediaGridItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
                     Modifier
                         .height(100.dp)
                         .fillMaxWidth()
-                        .alpha(if (showAudioControls) 0.4f else 1.0f)
+                        .alpha(if (showAudioControls) 0.6f else 1.0f)
                 )
                 if (showAudioControls) {
                     val player = AudioProperties.mediaController.get()
@@ -297,9 +300,106 @@ private fun IndicatorContent(indicatorString: String, isThumbSelected: Boolean) 
 }
 
 @Composable
+fun AudioListItem(mediaInfo: MediaInfo, modifier: Modifier) {
+    val isCurrentPlayingAudio = AudioProperties.compareAudioFile(File(mediaInfo.filePath))
+    val modifierClickable = if (isCurrentPlayingAudio) {
+        val context = LocalContext.current
+        modifier.clickable { showAudioPlayer(context) }
+    } else modifier
+    Surface(
+        modifier = modifierClickable
+            .fillMaxWidth()
+            .padding(4.dp)
+            .animateContentSize(),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max)
+        ) {
+            mediaInfo.MediaIcon(
+                modifier = Modifier
+                    .width(75.dp)
+                    .fillMaxHeight()
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp)
+                    .defaultMinSize(minHeight = 50.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (isCurrentPlayingAudio)
+                    Text(
+                        text = mediaInfo.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                else
+                    Text(text = mediaInfo.name, style = MaterialTheme.typography.bodyLarge)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = formatMilliseconds(mediaInfo.lastModified),
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = formatFileSize(mediaInfo.size),
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AudioGridItem(mediaInfo: MediaInfo, modifier: Modifier = Modifier) {
+    val isCurrentPlayingAudio = AudioProperties.compareAudioFile(File(mediaInfo.filePath))
+    val modifierClickable = if (isCurrentPlayingAudio) {
+        val context = LocalContext.current
+        modifier.clickable { showAudioPlayer(context) }
+    } else modifier
+    Surface(
+        modifier = modifierClickable.padding(6.dp),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Column {
+            mediaInfo.MediaIcon(
+                Modifier
+                    .height(100.dp)
+                    .fillMaxWidth()
+            )
+            Text(
+                text = mediaInfo.name,
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isCurrentPlayingAudio)
+                    MaterialTheme.colorScheme.primary
+                else
+                    Color.Unspecified,
+                fontWeight = if (isCurrentPlayingAudio) FontWeight.Bold else null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 3.dp, vertical = 2.dp)
+            )
+        }
+    }
+}
+
+@Composable
 fun ShowAllMedia(
-    viewBy: ViewBy,
-    sortBy: SortBy,
+    displayInfo: FilesDisplayInfo,
     listState: LazyListState,
     gridState: LazyGridState,
     onClick: (MediaInfo) -> Unit,
@@ -309,13 +409,13 @@ fun ShowAllMedia(
 ) {
     var isScrollThumbSelected by remember { mutableStateOf(false) }
     val getIndicatorString = { index: Int ->
-        when (sortBy) {
+        when (displayInfo.sortBy) {
             SortBy.Name -> "  ${list[index].name[0].uppercase()}  "
             SortBy.LastModified -> formatMilliseconds(list[index].lastModified, "dd-MMM-yyyy")
             SortBy.Size -> formatFileSize(list[index].size)
         }
     }
-    when (viewBy) {
+    when (displayInfo.viewBy) {
         ViewBy.List -> {
             LazyColumnScrollbar(
                 listState = listState,
@@ -331,6 +431,17 @@ fun ShowAllMedia(
                     isScrollThumbSelected = isThumbSelected
                 }
             ) {
+                if (displayInfo.selectedMediaType == SelectedMediaType.Music) {
+                    LazyColumn(
+                        modifier = modifier,
+                        state = listState
+                    ) {
+                        items(list) {
+                            AudioListItem(it, Modifier.clickable { onClick(it) })
+                        }
+                    }
+                    return@LazyColumnScrollbar
+                }
                 LazyColumn(
                     modifier = modifier,
                     state = listState
@@ -358,6 +469,18 @@ fun ShowAllMedia(
                     isScrollThumbSelected = isThumbSelected
                 }
             ) {
+                if (displayInfo.selectedMediaType == SelectedMediaType.Music) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(135.dp),
+                        modifier = modifier,
+                        state = gridState
+                    ) {
+                        items(list) {
+                            AudioGridItem(it, Modifier.clickable { onClick(it) })
+                        }
+                    }
+                    return@LazyGridVerticalScrollbar
+                }
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(135.dp),
                     modifier = modifier,

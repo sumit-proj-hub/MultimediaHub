@@ -88,10 +88,12 @@
         </activity>
         <activity
             android:name=".MainActivity"
-            android:configChanges="screenLayout|orientation|screenSize"
+            android:configChanges="screenLayout|screenSize"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.MultimediaHub"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            tools:ignore="LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -46,8 +46,7 @@ fun FilesScreen(
         return
     }
     ShowAllMedia(
-        viewBy = displayInfo.viewBy,
-        sortBy = displayInfo.sortBy,
+        displayInfo = displayInfo,
         listState = rememberLazyListState(),
         gridState = rememberLazyGridState(),
         onClick = { onMediaClick(context, it.mediaType!!, it.filePath) },

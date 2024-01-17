@@ -1,6 +1,9 @@
 package com.example.multimediahub.screens
 
 import android.app.Activity
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -8,6 +11,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,11 +31,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FileCopy
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -41,6 +50,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,9 +64,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,15 +78,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.multimediahub.FilesDisplayInfo
+import com.example.multimediahub.MediaType
+import com.example.multimediahub.R
 import com.example.multimediahub.ReducedMediaInfo
 import com.example.multimediahub.SelectedMediaType
 import com.example.multimediahub.SortBy
 import com.example.multimediahub.ViewBy
+import com.example.multimediahub.audioplayer.AudioProperties
+import java.io.File
 
 private sealed class BottomNavItem(
     val route: String,
     val label: String,
-    val icon: ImageVector
+    val icon: ImageVector,
 ) {
     object Recent : BottomNavItem(
         route = "recent",
@@ -101,7 +117,7 @@ private fun BottomNavGraph(
     navController: NavHostController,
     paddingValues: PaddingValues,
     onBackHandler: () -> Boolean,
-    scrollDirectionListener: (Boolean) -> Unit
+    scrollDirectionListener: (Boolean) -> Unit,
 ) {
     NavHost(
         navController = navController,
@@ -187,16 +203,20 @@ fun MainScreen() {
                 )
             },
             bottomBar = {
-                AnimatedVisibility(
-                    visible = !isSearchBarActive && !isScrollingDown,
-                    enter = slideInVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        initialOffsetY = { it / 2 }),
-                    exit = slideOutVertically(
-                        animationSpec = tween(durationMillis = 200),
-                        targetOffsetY = { it / 2 })
-                ) {
-                    BottomNavigationBar(navController = navController)
+                Column {
+                    if (displayInfo.selectedMediaType == SelectedMediaType.Music && !isSearchBarActive)
+                        MusicBar()
+                    AnimatedVisibility(
+                        visible = !isSearchBarActive && !isScrollingDown,
+                        enter = slideInVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            initialOffsetY = { it / 2 }),
+                        exit = slideOutVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            targetOffsetY = { it / 2 })
+                    ) {
+                        BottomNavigationBar(navController = navController)
+                    }
                 }
             },
         ) { paddingValues ->
@@ -216,6 +236,79 @@ fun MainScreen() {
                 }
             )
         }
+    }
+}
+
+@Composable
+fun MusicBar() {
+    if (AudioProperties.currentlyPlayingFile == null)
+        return
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .padding(vertical = 4.dp)
+            .clickable { showAudioPlayer(context) },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val metadataRetriever = MediaMetadataRetriever()
+        metadataRetriever.setDataSource(
+            context,
+            Uri.fromFile(AudioProperties.currentlyPlayingFile)
+        )
+        val imageData: ByteArray? = metadataRetriever.embeddedPicture
+        if (imageData != null) {
+            Image(
+                bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+                    .asImageBitmap(),
+                contentDescription = "Audio Thumbnail",
+                modifier = Modifier.size(60.dp)
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.AudioFile,
+                contentDescription = "Audio Icon",
+                tint = colorResource(R.color.purple_200),
+                modifier = Modifier.size(60.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        val player = AudioProperties.mediaController.get()
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = AudioProperties.currentlyPlayingFile!!.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Bold
+            )
+            Slider(
+                value = if (AudioProperties.audioLength == 0L) {
+                    0f
+                } else {
+                    AudioProperties.currentPosition.toFloat() / AudioProperties.audioLength
+                },
+                onValueChange = {
+                    player.seekTo((it * AudioProperties.audioLength).toLong())
+                }
+            )
+        }
+        Icon(
+            imageVector = if (AudioProperties.isPlaying)
+                Icons.Default.Pause
+            else
+                Icons.Default.PlayArrow,
+            contentDescription = "Pause/Play",
+            modifier = Modifier
+                .size(40.dp)
+                .clickable {
+                    if (AudioProperties.isPlaying)
+                        player.pause()
+                    else
+                        player.play()
+                }
+        )
     }
 }
 
@@ -273,7 +366,8 @@ private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean)
                         .fillMaxWidth()
                         .padding(3.dp)
                         .clickable {
-                            onMediaClick(context, it.mediaType, it.filePath)
+                            if (!AudioProperties.compareAudioFile(File(it.filePath)))
+                                onMediaClick(context, it.mediaType, it.filePath)
                             showAudioPlayer(context)
                         },
                     verticalAlignment = Alignment.CenterVertically
@@ -284,12 +378,30 @@ private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean)
                             .padding(4.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
+                    val isPlayingFile = it.mediaType == MediaType.Audio &&
+                            it.filePath == AudioProperties.currentlyPlayingFile?.path
                     Text(
                         text = it.name,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (isPlayingFile)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            Color.Unspecified,
+                        fontWeight = if (isPlayingFile) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.weight(1f)
                     )
+                    if (
+                        it.mediaType == MediaType.Audio &&
+                        it.filePath == AudioProperties.currentlyPlayingFile?.path
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.BarChart,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
             }
         }
@@ -300,7 +412,7 @@ private fun FileSearch(isSearchBarActive: Boolean, setSearchBarActive: (Boolean)
 private fun MediaTypeSelector(
     selectedType: SelectedMediaType,
     onClick: (selectedType: SelectedMediaType) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
         Row(
@@ -325,7 +437,7 @@ private fun SwitchButton(
     text: String,
     isChecked: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val borderColor = if (isChecked) Color.DarkGray else MaterialTheme.colorScheme.primary
     Surface(
@@ -350,7 +462,7 @@ private fun SortAndView(
     allowSort: Boolean,
     onSortByClick: (SortBy) -> Unit,
     onViewByClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var isSortByExpanded by remember { mutableStateOf(false) }
     Row(
@@ -422,7 +534,7 @@ private fun Head(
     onViewByClick: () -> Unit,
     allowSort: Boolean,
     isSearchBarActive: Boolean,
-    setSearchBarActive: (Boolean) -> Unit
+    setSearchBarActive: (Boolean) -> Unit,
 ) {
     Column(modifier = Modifier.animateContentSize()) {
         FileSearch(isSearchBarActive, setSearchBarActive)

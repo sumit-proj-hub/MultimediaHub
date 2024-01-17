@@ -3,20 +3,30 @@ package com.example.multimediahub
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
@@ -47,26 +57,69 @@ class MediaInfo(
             )
             return
         }
-        when (mediaType) {
-            MediaType.Audio -> Icon(
-                imageVector = Icons.Default.AudioFile,
-                contentDescription = mediaType.toString(),
-                tint = colorResource(R.color.purple_200),
-                modifier = modifier
-            )
+        Box {
+            var showSecondaryIcon = false
+            when (mediaType) {
+                MediaType.Audio -> {
+                    val metadataRetriever = MediaMetadataRetriever()
+                    metadataRetriever.setDataSource(
+                        LocalContext.current,
+                        Uri.fromFile(File(filePath))
+                    )
+                    val imageData: ByteArray? = metadataRetriever.embeddedPicture
+                    if (imageData != null) {
+                        Image(
+                            bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+                                .asImageBitmap(),
+                            contentDescription = "Audio Thumbnail",
+                            modifier = modifier
+                        )
+                        showSecondaryIcon = true
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.AudioFile,
+                            contentDescription = mediaType.toString(),
+                            tint = colorResource(R.color.purple_200),
+                            modifier = modifier
+                        )
+                    }
+                }
 
-            MediaType.PDF -> Icon(
-                imageVector = Icons.Default.PictureAsPdf,
-                contentDescription = mediaType.toString(),
-                tint = colorResource(R.color.light_red),
-                modifier = modifier
-            )
+                MediaType.PDF -> Icon(
+                    imageVector = Icons.Default.PictureAsPdf,
+                    contentDescription = mediaType.toString(),
+                    tint = colorResource(R.color.light_red),
+                    modifier = modifier
+                )
 
-            MediaType.Image, MediaType.Video -> GlideImage(
-                model = "file://$filePath",
-                contentDescription = null,
-                modifier = modifier
-            )
+                MediaType.Image -> GlideImage(
+                    model = "file://$filePath",
+                    contentDescription = null,
+                    modifier = modifier
+                )
+
+                MediaType.Video -> {
+                    GlideImage(
+                        model = "file://$filePath",
+                        contentDescription = null,
+                        modifier = modifier
+                    )
+                    showSecondaryIcon = true
+                }
+            }
+            if (showSecondaryIcon) {
+                Icon(
+                    imageVector = when (mediaType) {
+                        MediaType.Audio -> Icons.Default.Audiotrack
+                        else -> Icons.Default.Videocam
+                    },
+                    tint = Color.Black,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .background(Color.White, MaterialTheme.shapes.extraSmall)
+                )
+            }
         }
     }
 
