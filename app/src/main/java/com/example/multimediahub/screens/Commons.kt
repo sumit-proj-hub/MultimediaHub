@@ -618,10 +618,14 @@ fun onMediaClick(
     val intent = when (mediaType) {
         MediaType.Image -> Intent(context, ImageViewerActivity::class.java)
         MediaType.Audio -> {
+            AudioProperties.pathIndexMap = emptyMap()
+            AudioProperties.indexPathMap = emptyMap()
             val mediaController = AudioProperties.mediaController.get()
             val audioFile = File(filePath)
+            val audioUri = Uri.fromFile(audioFile)
             AudioProperties.currentlyPlayingFile = audioFile
-            mediaController.setMediaItem(MediaItem.fromUri(Uri.fromFile(audioFile)))
+            AudioProperties.audioUri = audioUri
+            mediaController.setMediaItem(MediaItem.fromUri(audioUri))
             mediaController.seekTo(0L)
             mediaController.play()
             return
@@ -632,4 +636,16 @@ fun onMediaClick(
     }
     intent.putExtra("path", filePath)
     context.startActivity(intent)
+}
+
+fun onAudioClick(context: Context, audioList: List<MediaInfo>, filePath: String) {
+    addToRecent(context, MediaType.Audio, filePath)
+    val mediaController = AudioProperties.mediaController.get()
+    val audioFile = File(filePath)
+    val audioUri = Uri.fromFile(audioFile)
+    AudioProperties.setAudioPlaylist(audioList)
+    mediaController.seekTo(AudioProperties.pathIndexMap[filePath] ?: 0, 0)
+    AudioProperties.currentlyPlayingFile = audioFile
+    AudioProperties.audioUri = audioUri
+    mediaController.play()
 }

@@ -78,7 +78,11 @@ fun RecentScreen(
             displayInfo = displayInfo,
             listState = rememberLazyListState(),
             gridState = rememberLazyGridState(),
-            onClick = { onMediaClick(context, it.mediaType!!, it.filePath) },
+            onClick = if (displayInfo.selectedMediaType == SelectedMediaType.Music) { {
+                onAudioClick(context, fileList, it.filePath)
+            } } else { {
+                onMediaClick(context, it.mediaType!!, it.filePath)
+            } },
             list = fileList,
             scrollDirectionListener = scrollDirectionListener,
             modifier = modifier.animateContentSize(),

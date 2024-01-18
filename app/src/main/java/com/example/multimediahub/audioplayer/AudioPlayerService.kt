@@ -2,12 +2,15 @@ package com.example.multimediahub.audioplayer
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import java.io.File
 
 class AudioPlayerService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
@@ -34,12 +37,6 @@ class AudioPlayerService : MediaSessionService() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == ExoPlayer.STATE_READY)
                     AudioProperties.audioLength = player.duration
-                else if (playbackState == ExoPlayer.STATE_ENDED) {
-                    player.seekTo(0L)
-                    AudioProperties.currentPosition = 0L
-                    player.pause()
-                    AudioProperties.isPlaying = false
-                }
             }
 
             override fun onIsPlayingChanged(playState: Boolean) {
@@ -53,6 +50,17 @@ class AudioPlayerService : MediaSessionService() {
                 }
                 if (playState)
                     handler.postDelayed(runnable, 0)
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                super.onMediaItemTransition(mediaItem, reason)
+                if (AudioProperties.indexPathMap.isEmpty())
+                    return
+                val audioPath = AudioProperties.indexPathMap[player.currentMediaItemIndex]
+                AudioProperties.currentlyPlayingFile =
+                    if (audioPath != null) File(audioPath) else null
+                AudioProperties.audioUri = Uri.fromFile(AudioProperties.currentlyPlayingFile)
+                AudioProperties.audioLength = player.duration
             }
         }
         player.addListener(playerListener)

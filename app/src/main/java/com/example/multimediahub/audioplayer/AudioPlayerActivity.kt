@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,6 +27,8 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.PauseCircleFilled
 import androidx.compose.material.icons.filled.PlayCircleFilled
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -54,9 +55,9 @@ class AudioPlayerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         checkoutAudioSession {
             try {
-                val (fileName, mediaController) = setupAudioFromIntent(this, intent)
+                val mediaController = setupAudioFromIntent(this, intent)
                 setContent {
-                    Content(mediaController, fileName ?: AudioProperties.audioName ?: "Audio")
+                    Content(mediaController, AudioProperties.audioName ?: "Audio")
                 }
             } catch (_: Exception) {
                 setContent {
@@ -163,6 +164,16 @@ class AudioPlayerActivity : ComponentActivity() {
                     .padding(12.dp)
             ) {
                 Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable {
+                            AudioProperties.mediaController.get().seekToPreviousMediaItem()
+                        }
+                )
+                Icon(
                     imageVector = Icons.Default.FastRewind,
                     contentDescription = "Rewind",
                     tint = Color.White,
@@ -204,6 +215,16 @@ class AudioPlayerActivity : ComponentActivity() {
                             )
                         }
                 )
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "Next",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable {
+                            AudioProperties.mediaController.get().seekToNextMediaItem()
+                        }
+                )
             }
         }
     }
@@ -211,13 +232,10 @@ class AudioPlayerActivity : ComponentActivity() {
     @Composable
     private fun AudioThumbnail(modifier: Modifier = Modifier) {
         val metadataRetriever = MediaMetadataRetriever()
-        val audioUri = if (intent.action == Intent.ACTION_VIEW) intent.data
-        else {
-            if (AudioProperties.currentlyPlayingFile != null)
-                Uri.fromFile(AudioProperties.currentlyPlayingFile)
-            else
-                AudioProperties.audioUri
-        }
+        val audioUri = if (intent.action == Intent.ACTION_VIEW)
+            intent.data
+        else
+            AudioProperties.audioUri
         val imageData: ByteArray? = if (audioUri != null) {
             metadataRetriever.setDataSource(this, audioUri)
             metadataRetriever.embeddedPicture

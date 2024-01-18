@@ -314,19 +314,19 @@ fun getUriAndNameFromIntent(context: Context, intent: Intent): Pair<Uri?, String
     return Pair(uri, fileName)
 }
 
-fun setupAudioFromIntent(context: Context, intent: Intent): Pair<String?, MediaController> {
+fun setupAudioFromIntent(context: Context, intent: Intent): MediaController {
     val mediaController = AudioProperties.mediaController.get()
-    val audioName: String?
     if (intent.action == Intent.ACTION_VIEW) {
         val uri = intent.data ?: throw Exception("Audio Not Found")
-        audioName = getFileNameFromUri(context, uri)
+        val audioName = getFileNameFromUri(context, uri)
         AudioProperties.audioUri = uri
         AudioProperties.audioName = audioName
         mediaController.setMediaItem(MediaItem.fromUri(uri))
         mediaController.seekTo(0L)
         mediaController.play()
     } else {
-        audioName = AudioProperties.currentlyPlayingFile?.name
+        AudioProperties.audioName = AudioProperties.currentlyPlayingFile?.name
+        AudioProperties.audioUri = Uri.fromFile(AudioProperties.currentlyPlayingFile)
     }
-    return Pair(audioName, mediaController)
+    return mediaController
 }

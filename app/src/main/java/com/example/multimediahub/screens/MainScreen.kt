@@ -3,7 +3,6 @@ package com.example.multimediahub.screens
 import android.app.Activity
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -41,6 +40,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -204,8 +205,18 @@ fun MainScreen() {
             },
             bottomBar = {
                 Column {
-                    if (displayInfo.selectedMediaType == SelectedMediaType.Music && !isSearchBarActive)
+                    AnimatedVisibility(
+                        visible = displayInfo.selectedMediaType == SelectedMediaType.Music &&
+                                !isSearchBarActive,
+                        enter = slideInVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            initialOffsetY = { it / 2 }),
+                        exit = slideOutVertically(
+                            animationSpec = tween(durationMillis = 200),
+                            targetOffsetY = { it / 2 })
+                    ) {
                         MusicBar()
+                    }
                     AnimatedVisibility(
                         visible = !isSearchBarActive && !isScrollingDown,
                         enter = slideInVertically(
@@ -255,7 +266,7 @@ fun MusicBar() {
         val metadataRetriever = MediaMetadataRetriever()
         metadataRetriever.setDataSource(
             context,
-            Uri.fromFile(AudioProperties.currentlyPlayingFile)
+            AudioProperties.audioUri
         )
         val imageData: ByteArray? = metadataRetriever.embeddedPicture
         if (imageData != null) {
@@ -263,14 +274,14 @@ fun MusicBar() {
                 bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
                     .asImageBitmap(),
                 contentDescription = "Audio Thumbnail",
-                modifier = Modifier.size(60.dp)
+                modifier = Modifier.size(65.dp)
             )
         } else {
             Icon(
                 imageVector = Icons.Default.AudioFile,
                 contentDescription = "Audio Icon",
                 tint = colorResource(R.color.purple_200),
-                modifier = Modifier.size(60.dp)
+                modifier = Modifier.size(65.dp)
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
@@ -283,32 +294,54 @@ fun MusicBar() {
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = FontWeight.Bold
             )
-            Slider(
-                value = if (AudioProperties.audioLength == 0L) {
-                    0f
-                } else {
-                    AudioProperties.currentPosition.toFloat() / AudioProperties.audioLength
-                },
-                onValueChange = {
-                    player.seekTo((it * AudioProperties.audioLength).toLong())
-                }
-            )
-        }
-        Icon(
-            imageVector = if (AudioProperties.isPlaying)
-                Icons.Default.Pause
-            else
-                Icons.Default.PlayArrow,
-            contentDescription = "Pause/Play",
-            modifier = Modifier
-                .size(40.dp)
-                .clickable {
-                    if (AudioProperties.isPlaying)
-                        player.pause()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Slider(
+                    value = if (AudioProperties.audioLength == 0L) {
+                        0f
+                    } else {
+                        AudioProperties.currentPosition.toFloat() / AudioProperties.audioLength
+                    },
+                    onValueChange = {
+                        player.seekTo((it * AudioProperties.audioLength).toLong())
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable {
+                        AudioProperties.mediaController.get().seekToPreviousMediaItem()
+                    }
+                )
+                Icon(
+                    imageVector = if (AudioProperties.isPlaying)
+                        Icons.Default.Pause
                     else
-                        player.play()
-                }
-        )
+                        Icons.Default.PlayArrow,
+                    contentDescription = "Pause/Play",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .padding(horizontal = 4.dp)
+                        .clickable {
+                            if (AudioProperties.isPlaying)
+                                player.pause()
+                            else
+                                player.play()
+                        }
+                )
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "Next",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable {
+                        AudioProperties.mediaController.get().seekToNextMediaItem()
+                    }
+                )
+            }
+        }
     }
 }
 
