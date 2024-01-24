@@ -19,7 +19,7 @@ object AudioProperties {
     lateinit var mediaController: ListenableFuture<MediaController>
     var currentlyPlayingFile: File? by mutableStateOf(null)
     var audioUri: Uri? by mutableStateOf(null)
-    var audioName: String? = null
+    var audioName: String? by mutableStateOf(null)
     var currentPosition by mutableLongStateOf(0L)
     var audioLength by mutableLongStateOf(0L)
     var isPlaying by mutableStateOf(false)

@@ -61,6 +61,7 @@ class AudioPlayerService : MediaSessionService() {
                     if (audioPath != null) File(audioPath) else null
                 AudioProperties.audioUri = Uri.fromFile(AudioProperties.currentlyPlayingFile)
                 AudioProperties.audioLength = player.duration
+                AudioProperties.audioName = AudioProperties.currentlyPlayingFile?.name
             }
         }
         player.addListener(playerListener)

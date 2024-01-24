@@ -57,7 +57,7 @@ class AudioPlayerActivity : ComponentActivity() {
             try {
                 val mediaController = setupAudioFromIntent(this, intent)
                 setContent {
-                    Content(mediaController, AudioProperties.audioName ?: "Audio")
+                    Content(mediaController)
                 }
             } catch (_: Exception) {
                 setContent {
@@ -89,7 +89,7 @@ class AudioPlayerActivity : ComponentActivity() {
 
     @OptIn(UnstableApi::class)
     @Composable
-    private fun Content(mediaController: MediaController, fileName: String) {
+    private fun Content(mediaController: MediaController) {
         Surface(color = Color.Black) {
             Column(
                 verticalArrangement = Arrangement.SpaceBetween,
@@ -111,7 +111,7 @@ class AudioPlayerActivity : ComponentActivity() {
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
-                        text = fileName,
+                        text = AudioProperties.audioName ?: "Audio",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = Color.White,
