@@ -1,14 +1,49 @@
-# MultimediaHub
+# 🎧 Multimedia Hub
 
-A very simple android application to list and view image, video, audio and PDF files.
+**Multimedia Hub** is a simple Android application that lets users browse, open, and view **images**, **videos**, **audio**, and **PDF files** in a clean, unified interface.
 
-## Features
-- **Showing Files**: Application can show files in both list and grid view based on selected file type and sorting method.
-- **Show By Folder**: Application can show collection of media files by grouping them on the basis of directory in which media files are located. User can see a list/grid of folders and tapping on that folder will show all media files within that folder.
-- **Recents**: Application also shows the collection of recently opened media files using this application sorted on the basis of last opened time.
-- **Search Bar**: User can search media files from its name.
-- **Image Viewer**: Very basic image viewer that supports pinching and panning actions in image.
-- **Audio Player**: Audio player supports background playback with notification controls.
-- **Video Player**: Basic video player that has basic controls: play/pause, seek, show time elapsed and total video time, audio track selection, fast forward, fast rewind and orientation change. Its playback can also be controlled using headphones.
-- **PDF Viewer**: Extremely basic PDF viewer that renders PDF file. It supports pinching, panning, fast scroll, showing current page number and jumping to given page number. It also supports night mode.
-- **Open With..**: The application supports opening media files using "Open with..." dialog of android from different applications.
+---
+
+## 📱 Overview
+
+This lightweight app is designed to organize and present media content on your device, offering basic viewing and playback functionality without any bloat. Whether it's checking a PDF, playing a song, or scrolling through images in folders — Multimedia Hub keeps it simple.
+
+---
+
+## ✨ Features
+
+- **File Display (List & Grid View):**  
+  Browse media files in list or grid format, sorted and filtered by type.
+
+- **Folder View:**  
+  View media grouped by folders. Tap any folder to view its contents.
+
+- **Recent Files:**  
+  Quickly access files recently opened in the app.
+
+- **Search:**  
+  Search media files by name with an intuitive search bar.
+
+- **Image Viewer:**  
+  Simple image viewer with support for pinch-to-zoom and pan gestures.
+
+- **Audio Player:**  
+  Background playback and media control via notifications.
+
+- **Video Player:**  
+  Minimal player with basic controls and headphone support.
+
+- **PDF Viewer:**  
+  Lightweight PDF reader with zoom, scroll, jump-to-page, and night mode.
+
+- **"Open With…" Support:**  
+  Open media files directly from other apps using Android's "Open with…" feature.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Language:** Kotlin  
+- **UI Toolkit:** Android Jetpack Compose
+
+---
